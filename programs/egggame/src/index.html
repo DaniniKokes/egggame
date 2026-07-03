@@ -1,0 +1,24 @@
+<html>
+<head>
+    <title>Egg Catcher City</title>
+    <style>
+        body { background: #222; color: white; text-align: center; font-family: sans-serif; }
+        #game { width: 400px; height: 300px; border: 4px solid #fff; margin: 20px auto; position: relative; background: #333; overflow: hidden; }
+        .player { width: 40px; height: 40px; background: gold; position: absolute; bottom: 0; left: 180px; transition: 0.1s; }
+    </style>
+</head>
+<body>
+    <h1>Chytej vajíčka!</h1>
+    <p>Používej šipky na klávesnici</p>
+    <div id="game"><div id="player" class="player"></div></div>
+    <script>
+        const player = document.getElementById('player');
+        let x = 180;
+        document.addEventListener('keydown', (e) => {
+            if(e.key === 'ArrowLeft' && x > 0) x -= 20;
+            if(e.key === 'ArrowRight' && x < 360) x += 20;
+            player.style.left = x + 'px';
+        });
+    </script>
+</body>
+</html>
