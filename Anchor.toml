@@ -2,6 +2,7 @@ skip_local_validator = true
 
 [toolchain]
 solana_version = "1.18.18"
+anchor_version = "0.29.0"
 [features]
 resolution = true
 skip-lint = false
