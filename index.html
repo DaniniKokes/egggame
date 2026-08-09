@@ -20,134 +20,158 @@
         canvas {
             background: #2b2b2b;
             border: 4px solid #444;
-            cursor: none; /* Skryje klasický kurzor, budeme mít vlastní postavičku */
+            cursor: none; /* Skryje kurzor, máme vlastní postavu */
         }
-        h1 {
-            margin: 5px;
-            font-size: 24px;
-        }
+        h1 { margin: 5px; font-size: 24px; }
     </style>
 </head>
 <body>
 
     <h1>Egg & Lilek Game</h1>
-    <p>Chytej skákající lilky/vajíčka pohybem myši!</p>
     <canvas id="gameCanvas" width="800" height="500"></canvas>
 
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
-        // Pozice a stav hráče (košík/postava dole)
+        // --- DEFINICE HRY ---
+
+        // Pozice oken na budovách (pro start lilku)
+        const buildingWindows = [];
+        // Levá budova (okna na x=90, různé y)
+        for(let y = 180; y < 450; y += 100) {
+            buildingWindows.push({ x: 90, y: y });
+        }
+        // Pravá budova (okna na x=canvas.width - 90)
+        for(let y = 180; y < 450; y += 100) {
+            buildingWindows.push({ x: canvas.width - 90, y: y });
+        }
+
+        // Hráč (postava dole)
         let player = {
-            x: canvas.width / 2 - 40,
-            y: canvas.height - 50,
-            width: 80,
-            height: 20,
+            x: canvas.width / 2 - 30,
+            y: canvas.height - 70,
+            width: 60,
+            height: 60,
             score: 0
         };
 
-        // Lilek / Vajíčko, které skáče mezi budovami
+        // Lilek (protáhlý)
         let egg = {
-            x: 100,
-            y: 300,
-            radius: 12,
-            vx: 3, // Rychlost do strany
-            vy: -4 // Rychlost nahoru/dolů
+            x: 0, y: 0,
+            radiusX: 10, // Šířka
+            radiusY: 15, // Výška (protáhlý)
+            vx: 0, vy: 0,
+            active: false
         };
 
-        // Sledování pohybu myši
+        // Funkce pro reset lilku do náhodného okna
+        function resetEggToWindow() {
+            const windowIndex = Math.floor(Math.random() * buildingWindows.length);
+            const startWindow = buildingWindows[windowIndex];
+
+            egg.x = startWindow.x;
+            egg.y = startWindow.y;
+            egg.vy = 0;
+            // Vystřelí ho trochu do strany podle toho, na které je budově
+            egg.vx = (startWindow.x < canvas.width / 2) ? 3 : -3;
+            egg.active = true;
+        }
+
+        // Spuštění hry
+        resetEggToWindow();
+
+        // Ovládání myší
         canvas.addEventListener("mousemove", (e) => {
             const rect = canvas.getBoundingClientRect();
-            let mouseX = e.clientX - rect.left;
-            // Nastaví pozici hráče podle myši, ale nepustí ho z plátna
-            player.x = mouseX - player.width / 2;
+            player.x = (e.clientX - rect.left) - player.width / 2;
+            // Hranice
             if (player.x < 0) player.x = 0;
             if (player.x > canvas.width - player.width) player.x = canvas.width - player.width;
         });
 
         function update() {
+            if (!egg.active) return;
+
             // Pohyb lilku
             egg.x += egg.vx;
             egg.y += egg.vy;
+            // Gravitace
+            egg.vy += 0.2;
 
-            // Gravitace (ať padá dolů)
-            egg.vy += 0.15;
-
-            // Odrazy od bočních budov (levá budova na x=100, pravá na x=700)
-            if (egg.x <= 110) {
+            // Odrazy od stěn (budov)
+            if (egg.x <= 20 || egg.x >= canvas.width - 20) {
                 egg.vx *= -1;
-                egg.vy -= 2; // Odraz od patra/stěny ho nakopne
-            }
-            if (egg.x >= canvas.width - 110) {
-                egg.vx *= -1;
-                egg.vy -= 2;
             }
 
-            // Odraz od stropu
-            if (egg.y <= 50) {
-                egg.vy *= -1;
-            }
-
-            // Chycení hráčem dole
+            // Kontrola chycení (hlavou postavy)
             if (
-                egg.y + egg.radius >= player.y &&
-                egg.x >= player.x &&
-                egg.x <= player.x + player.width
+                egg.y + egg.radiusY >= player.y && // Je dostatečně nízko
+                egg.x > player.x && // Je vlevo od kraje postavy
+                egg.x < player.x + player.width // Je vpravo od kraje postavy
             ) {
                 player.score += 1;
-                // Reset lilku nahoru
-                egg.y = 150;
-                egg.x = canvas.width / 2;
-                egg.vy = -5;
-                // Náhodný směr po chycení
-                egg.vx = (Math.random() - 0.5) * 6;
+                resetEggToWindow(); // Znovu vyskočí z okna
             }
 
-            // Pokud spadne dolů na zem (Game Over / Reset)
+            // Pokud spadne na zem
             if (egg.y > canvas.height) {
-                player.score = 0; // Reset skóre
-                egg.y = 150;
-                egg.x = canvas.width / 2;
-                egg.vy = -4;
+                player.score = 0; // Game Over
+                resetEggToWindow();
             }
         }
 
         function draw() {
-            // Vymazání obrazovky
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // --- VYKRESLENÍ DVOU 3-PATROVÝCH BUDOV ---
+            // 1. Budovy a okna
             ctx.fillStyle = "#555";
-            // Levá budova
-            ctx.fillRect(20, 100, 90, 400);
-            // Pravá budova
-            ctx.fillRect(canvas.width - 110, 100, 90, 400);
+            ctx.fillRect(0, 150, 100, 350); // Levá
+            ctx.fillRect(canvas.width - 100, 150, 100, 350); // Pravá
 
-            // Okna na budovách (pro efekt pater)
-            ctx.fillStyle = "#888";
-            for (let i = 140; i < 450; i += 80) {
-                ctx.fillRect(40, i, 20, 40);
-                ctx.fillRect(canvas.width - 90, i, 20, 40);
-            }
+            // Okna
+            ctx.fillStyle = "#333";
+            buildingWindows.forEach(win => {
+                ctx.fillRect(win.x - 15, win.y - 25, 30, 50);
+            });
 
-            // --- VYKRESLENÍ LILKU / VAJÍČKA ---
-            ctx.fillStyle = "#9b59b6"; // Fialová barva lilku
-            ctx.beginPath();
-            ctx.arc(egg.x, egg.y, egg.radius, 0, Math.PI * 2);
-            ctx.fill();
-            // Zelená stopka lilku
-            ctx.fillStyle = "#27ae60";
-            ctx.fillRect(egg.x - 3, egg.y - egg.radius - 6, 6, 6);
-
-            // --- VYKRESLENÍ HRÁČE (DOLE) ---
+            // 2. Postava (dole)
+            // Tělo
             ctx.fillStyle = "#e67e22";
             ctx.fillRect(player.x, player.y, player.width, player.height);
-
-            // --- SKÓRE ---
+            // Hlava
+            ctx.beginPath();
+            ctx.arc(player.x + player.width/2, player.y - 15, 20, 0, Math.PI*2);
+            ctx.fill();
+            // Oči
             ctx.fillStyle = "white";
-            ctx.font = "20px sans-serif";
-            ctx.fillText("Chyceno: " + player.score, 140, 40);
+            ctx.beginPath(); ctx.arc(player.x + player.width/2 - 8, player.y - 18, 4, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(player.x + player.width/2 + 8, player.y - 18, 4, 0, Math.PI*2); ctx.fill();
+
+
+            // 3. Lilek (protáhlý s očima)
+            if (egg.active) {
+                ctx.fillStyle = "#9b59b6";
+                ctx.beginPath();
+                // Elipsa (x, y, rotation, startAngle, endAngle, anticlockwise)
+                ctx.ellipse(egg.x, egg.y, egg.radiusX, egg.radiusY, 0, 0, Math.PI * 2);
+                ctx.fill();
+                // Stopka
+                ctx.fillStyle = "#27ae60";
+                ctx.fillRect(egg.x - 3, egg.y - egg.radiusY - 6, 6, 6);
+                // Oči lilku
+                ctx.fillStyle = "white";
+                ctx.beginPath(); ctx.arc(egg.x - 4, egg.y - 5, 3, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(egg.x + 4, egg.y - 5, 3, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = "black";
+                ctx.beginPath(); ctx.arc(egg.x - 4, egg.y - 5, 1.5, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(egg.x + 4, egg.y - 5, 1.5, 0, Math.PI*2); ctx.fill();
+            }
+
+            // Skóre
+            ctx.fillStyle = "white";
+            ctx.font = "26px sans-serif";
+            ctx.fillText("Skóre: " + player.score, canvas.width/2 - 60, 40);
         }
 
         function loop() {
