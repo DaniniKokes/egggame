@@ -1,7 +1,7 @@
 skip_local_validator = true
 
 [toolchain]
-
+solana_version = "1.18.18"
 [features]
 resolution = true
 skip-lint = false
