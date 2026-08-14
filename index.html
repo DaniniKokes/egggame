@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Egg & Lilek Solana Style</title>
+    <title>Egg & Lilek - PSG1 Edition</title>
     <style>
         body {
             margin: 0;
-            background: #111;
-            color: white;
+            background: #09090b;
+            color: #00ffcc;
             font-family: 'Courier New', Courier, monospace;
             display: flex;
             flex-direction: column;
@@ -18,41 +18,42 @@
             overflow: hidden;
         }
         canvas {
-            background: #2b1d0c;
-            border: 4px solid #4a3319;
-            box-shadow: 0 0 20px rgba(0,0,0,0.8);
-            cursor: none;
+            background: #1a1005;
+            border: 4px solid #00ffcc;
+            box-shadow: 0 0 25px rgba(0, 255, 204, 0.3);
         }
-        h1 { margin: 5px; font-size: 22px; color: #00ffcc; text-shadow: 2px 2px #ff00ff; }
+        h1 { margin: 8px; font-size: 20px; text-transform: uppercase; letter-spacing: 2px; }
     </style>
 </head>
 <body>
 
-    <h1>OFFICE EGG CATCHER (Solana Style)</h1>
+    <h1>PSG1 DevKit - Egg & Lilek</h1>
     <canvas id="gameCanvas" width="800" height="500"></canvas>
 
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
-        // Pozice oken na budovách
+        // Okna budov, ze kterých padají lilky
         const buildingWindows = [
-            { x: 90, y: 200 },
-            { x: 90, y: 320 },
-            { x: canvas.width - 90, y: 200 },
-            { x: canvas.width - 90, y: 320 }
+            { x: 90, y: 180 },
+            { x: 90, y: 300 },
+            { x: canvas.width - 90, y: 180 },
+            { x: canvas.width - 90, y: 300 }
         ];
 
-        // Hráč (postava v kanceláři)
+        // Hráč (ovládaný přes D-pad / šipky)
         let player = {
-            x: canvas.width / 2 - 25,
-            y: canvas.height - 80,
-            width: 50,
+            x: canvas.width / 2 - 30,
+            y: canvas.height - 75,
+            width: 60,
             height: 60,
-            score: 0
+            speed: 8,
+            score: 0,
+            dx: 0
         };
 
-        // Lilek / Vajíčko
+        // Lilek
         let egg = {
             x: 0, y: 0,
             radiusX: 12,
@@ -66,33 +67,50 @@
             egg.x = startWindow.x;
             egg.y = startWindow.y;
             egg.vy = 0;
-            egg.vx = (startWindow.x < canvas.width / 2) ? 3.5 : -3.5;
+            egg.vx = (startWindow.x < canvas.width / 2) ? 3.2 : -3.2;
             egg.active = true;
         }
 
         resetEggToWindow();
 
-        // Ovládání myší
-        canvas.addEventListener("mousemove", (e) => {
-            const rect = canvas.getBoundingClientRect();
-            player.x = (e.clientX - rect.left) - player.width / 2;
-            if (player.x < 100) player.x = 100;
-            if (player.x > canvas.width - 100 - player.width) player.x = canvas.width - 100 - player.width;
+        // Ovládání pomocí klávesnice (emulace D-padu na PSG1)
+        window.addEventListener("keydown", (e) => {
+            if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
+                player.dx = -player.speed;
+            } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
+                player.dx = player.speed;
+            }
+        });
+
+        window.addEventListener("keyup", (e) => {
+            if (
+                (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") && player.dx < 0 ||
+                (e.key === "ArrowRight" || e.key === "d" || e.key === "D") && player.dx > 0
+            ) {
+                player.dx = 0;
+            }
         });
 
         function update() {
+            // Pohyb hráče
+            player.x += player.dx;
+            // Omezení v rámci obrazovky (mezi budovami)
+            if (player.x < 110) player.x = 110;
+            if (player.x > canvas.width - 110 - player.width) player.x = canvas.width - 110 - player.width;
+
             if (!egg.active) return;
 
+            // Pohyb lilku
             egg.x += egg.vx;
             egg.y += egg.vy;
             egg.vy += 0.22; // Gravitace
 
-            // Odrazy od stěn budov
+            // Odrazy od budov
             if (egg.x <= 110 || egg.x >= canvas.width - 110) {
                 egg.vx *= -1;
             }
 
-            // Chycení postavou
+            // Chycení postavičkou
             if (
                 egg.y + egg.radiusY >= player.y &&
                 egg.x > player.x &&
@@ -102,7 +120,7 @@
                 resetEggToWindow();
             }
 
-            // Pád na zem
+            // Pád na zem (game over / reset skóre)
             if (egg.y > canvas.height) {
                 player.score = 0;
                 resetEggToWindow();
@@ -112,58 +130,46 @@
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // --- 1. DŘEVĚNÁ PODLAHA (Pixel art textura) ---
-            ctx.fillStyle = "#3d2612";
+            // Dřevěná podlaha
+            ctx.fillStyle = "#26170a";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.strokeStyle = "#2b1a0c";
+            ctx.strokeStyle = "#170e06";
             ctx.lineWidth = 2;
-            for(let i = 0; i < canvas.height; i += 40) {
+            for(let i = 0; i < canvas.height; i += 35) {
                 ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
             }
 
-            // --- 2. BUDOVY A KANCELÁŘSKÉ VYBAVENÍ ---
-            // Levá budova/stěna
-            ctx.fillStyle = "#2c3e50";
+            // Budovy po stranách
+            ctx.fillStyle = "#1e272e";
             ctx.fillRect(0, 0, 110, canvas.height);
-            // Pravá budova/stěna
             ctx.fillRect(canvas.width - 110, 0, 110, canvas.height);
 
-            // Okna na budovách
-            ctx.fillStyle = "#1abc9c";
+            // Okna
+            ctx.fillStyle = "#00d2d3";
             buildingWindows.forEach(win => {
                 ctx.fillRect(win.x - 15, win.y - 25, 30, 50);
-                // Rám okna
                 ctx.strokeStyle = "#ffffff";
                 ctx.lineWidth = 2;
                 ctx.strokeRect(win.x - 15, win.y - 25, 30, 50);
             });
 
-            // Kancelářské doplňky (květináč vlevo nahoře)
-            ctx.fillStyle = "#e67e22"; ctx.fillRect(30, 100, 30, 30);
-            ctx.fillStyle = "#27ae60"; ctx.beginPath(); ctx.arc(45, 90, 20, 0, Math.PI*2); ctx.fill();
-
-            // Automat na vodu vpravo nahoře
-            ctx.fillStyle = "#bdc3c7"; ctx.fillRect(canvas.width - 50, 80, 35, 70);
-            ctx.fillStyle = "#3498db"; ctx.fillRect(canvas.width - 45, 90, 25, 25);
-
-            // --- 3. POSTAVA (Panáček v modrém s vlasy) ---
-            // Tělo (modré tričko)
-            ctx.fillStyle = "#3498db";
+            // Postava
+            ctx.fillStyle = "#ff9f43";
             ctx.fillRect(player.x + 10, player.y + 20, player.width - 20, player.height - 20);
             // Hlava
-            ctx.fillStyle = "#f5cd79";
-            ctx.fillRect(player.x + 12, player.y, 26, 22);
-            // Vlasy (tmavé rozcušené)
-            ctx.fillStyle = "#2c3e50";
-            ctx.fillRect(player.x + 10, player.y - 6, 30, 10);
-            // Oči panáčka
+            ctx.fillStyle = "#ffcccc";
+            ctx.fillRect(player.x + 12, player.y, 36, 22);
+            // Vlasy
+            ctx.fillStyle = "#2c2c54";
+            ctx.fillRect(player.x + 10, player.y - 6, 40, 10);
+            // Oči
             ctx.fillStyle = "#000";
-            ctx.fillRect(player.x + 18, player.y + 7, 3, 3);
-            ctx.fillRect(player.x + 29, player.y + 7, 3, 3);
+            ctx.fillRect(player.x + 20, player.y + 7, 4, 4);
+            ctx.fillRect(player.x + 36, player.y + 7, 4, 4);
 
-            // --- 4. LILEK (Protažený s očima) ---
+            // Lilek
             if (egg.active) {
-                ctx.fillStyle = "#8e44ad";
+                ctx.fillStyle = "#9b59b6";
                 ctx.beginPath();
                 ctx.ellipse(egg.x, egg.y, egg.radiusX, egg.radiusY, 0, 0, Math.PI * 2);
                 ctx.fill();
@@ -179,10 +185,10 @@
                 ctx.beginPath(); ctx.arc(egg.x + 4, egg.y - 4, 1.2, 0, Math.PI*2); ctx.fill();
             }
 
-            // --- SKÓRE ---
-            ctx.fillStyle = "#ffffff";
-            ctx.font = "bold 20px 'Courier New'";
-            ctx.fillText("SCORE: " + player.score, canvas.width / 2 - 50, 40);
+            // Skóre
+            ctx.fillStyle = "#00ffcc";
+            ctx.font = "bold 22px 'Courier New'";
+            ctx.fillText("SCORE: " + player.score, canvas.width / 2 - 60, 40);
         }
 
         function loop() {
