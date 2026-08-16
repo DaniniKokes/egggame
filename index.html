@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>Egg & Lilek - Krok 3: Padající lilky</title>
+    <title>Egg & Lilek - Vylepšené starty lilků</title>
     <style>
         body { 
             margin: 0; 
@@ -111,7 +111,7 @@
             { x: buildingWidth + 30, y: 200, roomIndex: 0 }, 
             { x: buildingWidth + 30, y: 420, roomIndex: 1 }, 
             { x: canvas.width - buildingWidth - 75, y: 200, roomIndex: 2 }, 
-            { x: canvas.width - buildingWidth - 75, roomIndex: 3, y: 420 }  
+            { x: canvas.width - buildingWidth - 75, y: 420, roomIndex: 3 }  
         ];
 
         let currentPosIndex = 1;
@@ -164,46 +164,44 @@
         }
 
         // ==========================================
-        // SEKCE 3: PADAJÍCÍ LILKY (EGG/LILCHEK LOGIKA)
+        // SEKCE 3: LILKY STARTUJÍCÍ V MÍSTNOSTI
         // ==========================================
         const lilekImg = new Image();
-        lilekImg.src = "lilek.png"; // Zde měj obrázek lilku
+        lilekImg.src = "lilek.png"; 
 
         let lilky = [];
         let spawnCounter = 0;
 
         function spawnLilek() {
-            // Náhodně vybereme jednu ze 4 místností (0 až 3)
             let rIdx = Math.floor(Math.random() * 4);
             let r = rooms[rIdx];
 
-            // Definujeme dráhu podle toho, jestli padá z levé nebo pravé budovy
             let isLeft = r.side === 'left';
-            let startX = isLeft ? buildingWidth : canvas.width - buildingWidth;
-            let startY = r.y + 60;
+            
+            // Startují přímo uvnitř místnosti (v černé chodbě/otvoru)
+            let startX = isLeft ? buildingWidth - 40 : canvas.width - buildingWidth + 20;
+            let startY = r.y + 35;
 
             lilky.push({
                 roomIndex: rIdx,
                 x: startX,
                 y: startY,
                 isLeft: isLeft,
-                speed: 2.5
+                speed: 1.0 // Pomalé a plynulé kutálení
             });
         }
 
         function updateAndDrawLilky() {
-            // Pravidelně pouštíme nové lilky
             spawnCounter++;
-            if (spawnCounter > 120) { // každých cca 2 sekundy
+            if (spawnCounter > 140) { 
                 spawnLilek();
                 spawnCounter = 0;
             }
 
-            // Procházení a posun všech aktivních lilků
             for (let i = lilky.length - 1; i >= 0; i--) {
                 let l = lilky[i];
 
-                // Pohyb po rampě dolů
+                // Pohyb
                 if (l.isLeft) {
                     l.x += l.speed;
                     l.y += l.speed * 0.85;
@@ -212,33 +210,27 @@
                     l.y += l.speed * 0.85;
                 }
 
-                // Vykreslení lilku (pokud obrázek existuje, jinak fialový kruh)
+                // Vykreslení lilku
                 if (lilekImg.complete && lilekImg.naturalWidth !== 0) {
                     ctx.drawImage(lilekImg, l.x - 15, l.y - 15, 30, 30);
                 } else {
-                    ctx.fillStyle = "#800080"; // fialová záloha
+                    ctx.fillStyle = "#800080";
                     ctx.beginPath();
                     ctx.arc(l.x, l.y, 12, 0, Math.PI * 2);
                     ctx.fill();
                 }
 
-                // Kontrola chycení (pokud je panáček na stejné pozici, kde lilek doběhl na konec rampy)
+                // Kontrola chycení
                 let targetPos = positions[l.roomIndex];
-                let catchAreaX = targetPos.x + 20;
-                let catchAreaY = targetPos.y + 30;
+                let catchAreaX = targetPos.x + 15;
+                let catchAreaY = targetPos.y + 40;
 
                 let distance = Math.hypot(l.x - catchAreaX, l.y - catchAreaY);
-                if (distance < 35) {
-                    // Lilek chycen! Smažeme ho ze seznamu
-                    lilky.splice(i, 1);
-                    // Tady pak můžeme přičíst skóre!
+                if (distance < 30) {
+                    lilky.splice(i, 1); // Chyceno!
                 } 
-                // Pokud lilek přepadne dál (hráč ho minul)
-                else if ((l.isLeft && l.x > buildingWidth + 80) || (!l.isLeft && l.x < canvas.width - buildingWidth - 80)) {
-                    // Můžeme odebrat život nebo nechat spadnout na zem
-                    if (l.y > canvas.height - 120) {
-                        lilky.splice(i, 1);
-                    }
+                else if ((l.isLeft && l.x > buildingWidth + 75) || (!l.isLeft && l.x < canvas.width - buildingWidth - 75)) {
+                    lilky.splice(i, 1); // Spadlo dolů
                 }
             }
         }
@@ -256,7 +248,6 @@
             requestAnimationFrame(gameLoop);
         }
 
-        // Spuštění, až se načtou hlavní podklady
         playerImg.onload = () => {
             gameLoop();
         };
