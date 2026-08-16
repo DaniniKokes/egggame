@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>Egg & Lilek - Fixed Edition</title>
+    <title>Egg & Lilek - Hra</title>
     <style>
         body { 
             margin: 0; 
@@ -12,13 +12,11 @@
             justify-content: center; 
             height: 100vh; 
             overflow: hidden; 
-            color: #fff;
             font-family: 'Courier New', Courier, monospace;
         }
         canvas { 
             border: 4px solid #444; 
             background: #87CEEB; 
-            box-shadow: 0 0 30px rgba(0,0,0,0.8);
         }
     </style>
 </head>
@@ -28,179 +26,146 @@
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
-        // Perfektně zarovnaná okna pro levou (šířka 220) a pravou stranu (od 680)
-        const windows = [
-            { id: 0, side: 'left', x: 0, y: 120, doorX: 220, doorY: 150, rampEndX: 300, rampEndY: 230 },
-            { id: 1, side: 'left', x: 0, y: 340, doorX: 220, doorY: 370, rampEndX: 300, rampEndY: 450 },
-            { id: 2, side: 'right', x: 680, y: 120, doorX: 680, doorY: 150, rampEndX: 600, rampEndY: 230 },
-            { id: 3, side: 'right', x: 680, y: 340, doorX: 680, doorY: 370, rampEndX: 600, rampEndY: 450 }
+        // ==========================================
+        // SEKCE 1: BUDOVY A PROSTŘEDÍ
+        // ==========================================
+        const buildingWidth = 220;
+        const themeColor = "#111111";
+
+        const rooms = [
+            { id: 0, side: 'left',  y: 55 },
+            { id: 1, side: 'left',  y: 275 },
+            { id: 2, side: 'right', y: 55 },
+            { id: 3, side: 'right', y: 275 }
         ];
 
-        let playerPosIndex = 0; 
-        let score = 0;
-        
-        let egg = { 
-            x: 0, y: 0, 
-            targetWindow: 0, 
-            active: false, 
-            progress: 0 
-        };
-
-        // Cihlová budova
-        function drawBrickBuilding(startX, width) {
+        function drawCleanBrickBuilding(startX, width, side) {
             ctx.fillStyle = "#A52A2A";
             ctx.fillRect(startX, 0, width, canvas.height - 100);
+            
             ctx.fillStyle = "#8B0000";
             for (let i = 0; i < canvas.height - 100; i += 25) {
-                for (let j = 0; j < width; j += 45) {
-                    ctx.fillRect(startX + j + ((i / 25) % 2 === 0 ? 20 : 0), i, 40, 20);
+                for (let j = 0; j < width - 20; j += 45) {
+                    let brickX = side === 'left' ? startX + j : startX + 20 + j;
+                    ctx.fillRect(brickX, i, 40, 20);
                 }
             }
-        }
 
-        function spawnEgg() {
-            let idx = Math.floor(Math.random() * windows.length);
-            egg.targetWindow = idx;
-            egg.active = true;
-            egg.progress = 0; // Začátek v místnosti
-        }
-
-        function update() {
-            if (!egg.active) {
-                // Pauza nebo okamžitý nový lilek podle potřeby
-                if(Math.random() < 0.03) spawnEgg();
+            ctx.fillStyle = "#A52A2A";
+            if (side === 'left') {
+                ctx.fillRect(startX + width - 20, 0, 20, canvas.height - 100);
             } else {
-                // Plynulý posun lilku (rychlost závisí na skóre, ale držíme ji v hratelných mezích)
-                let speed = 0.015 + (score * 0.001);
-                if (speed > 0.035) speed = 0.035;
-                egg.progress += speed;
-
-                if (egg.progress >= 1.0) {
-                    // Kontrola chycení dole
-                    if (playerPosIndex === egg.targetWindow) {
-                        score++;
-                    } else {
-                        score = 0; 
-                    }
-                    egg.active = false;
-                }
+                ctx.fillRect(startX, 0, 20, canvas.height - 100);
             }
         }
 
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Obloha
+        function drawEnvironment() {
             ctx.fillStyle = "#87CEEB";
-            ctx.fillRect(0, 0, canvas.width, canvas.height - 100);
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Budovy
-            drawBrickBuilding(0, 220);
-            drawBrickBuilding(680, 220);
+            drawCleanBrickBuilding(0, buildingWidth, 'left');
+            drawCleanBrickBuilding(canvas.width - buildingWidth, buildingWidth, 'right');
 
-            // Vykreslení místností a ramp
-            windows.forEach(w => {
-                // Interiér místnosti (dřevěná podlaha)
-                let rx = w.side === 'left' ? 20 : 700;
-                let ry = w.y - 15;
-                ctx.fillStyle = "#d49a4f";
-                ctx.fillRect(rx, ry, 180, 90);
+            rooms.forEach(r => {
+                if (r.side === 'left') {
+                    ctx.fillStyle = "#d49a4f";
+                    ctx.fillRect(0, r.y - 15, buildingWidth - 20, 85);
+                    
+                    ctx.fillStyle = themeColor;
+                    ctx.fillRect(buildingWidth - 20, r.y + 10, 20, 50);
 
-                // Okno / dveře ven
-                ctx.fillStyle = "#333";
-                ctx.fillRect(w.side === 'left' ? 200 : 680, w.y, 20, 70);
+                    ctx.strokeStyle = themeColor;
+                    ctx.lineWidth = 6;
+                    ctx.beginPath();
+                    ctx.moveTo(buildingWidth, r.y + 60);
+                    ctx.lineTo(buildingWidth + 70, r.y + 120);
+                    ctx.stroke();
+                } else {
+                    ctx.fillStyle = "#d49a4f";
+                    ctx.fillRect(canvas.width - buildingWidth + 20, r.y - 15, buildingWidth - 20, 85);
 
-                // Rampa ven do prostoru
-                ctx.strokeStyle = "#DAA520";
-                ctx.lineWidth = 8;
-                ctx.beginPath();
-                ctx.moveTo(w.side === 'left' ? 220 : 680, w.y + 50);
-                ctx.lineTo(w.rampEndX, w.rampEndY);
-                ctx.stroke();
+                    ctx.fillStyle = themeColor;
+                    ctx.fillRect(canvas.width - buildingWidth, r.y + 10, 20, 50);
+
+                    ctx.strokeStyle = themeColor;
+                    ctx.lineWidth = 6;
+                    ctx.beginPath();
+                    ctx.moveTo(canvas.width - buildingWidth, r.y + 60);
+                    ctx.lineTo(canvas.width - buildingWidth - 70, r.y + 120);
+                    ctx.stroke();
+                }
             });
 
-            // Silnice a chodník dole
-            ctx.fillStyle = "#333"; ctx.fillRect(0, canvas.height - 100, canvas.width, 100);
-            ctx.fillStyle = "#777"; ctx.fillRect(0, canvas.height - 105, canvas.width, 10);
-
-            // Pozice hráče dole
-            const playerCoords = [
-                { x: 260, y: 440 }, // L-Horní
-                { x: 260, y: 500 }, // L-Dolní
-                { x: 600, y: 440 }, // P-Horní
-                { x: 600, y: 500 }  // P-Dolní
-            ];
-            let p = playerCoords[playerPosIndex];
-
-            // Postavička
-            ctx.fillStyle = "#3498db";
-            ctx.fillRect(p.x, p.y, 40, 50);
-            ctx.fillStyle = "#f5cd79";
-            ctx.fillRect(p.x + 4, p.y - 15, 32, 18);
-            ctx.fillStyle = "#2c3e50";
-            ctx.fillRect(p.x + 2, p.y - 22, 36, 8);
-
-            // Vykreslení lilku podle toho, kde na trase zrovna je (interpolace)
-            if (egg.active) {
-                let w = windows[egg.targetWindow];
-                let startX = w.side === 'left' ? 120 : 760;
-                let startY = w.y + 35;
-                
-                let midX = w.rampEndX;
-                let midY = w.rampEndY;
-
-                let finalX = midX;
-                let finalY = canvas.height - 80;
-
-                let curX, curY;
-                if (egg.progress < 0.6) {
-                    // Fáze 1: Výběh z místnosti a sjetí po rampě
-                    let t = egg.progress / 0.6;
-                    curX = startX + (midX - startX) * t;
-                    curY = startY + (midY - startY) * t;
-                } else {
-                    // Fáze 2: Padání z konce rampy dolů na chodník
-                    let t = (egg.progress - 0.6) / 0.4;
-                    curX = midX;
-                    curY = midY + (finalY - midY) * t;
-                }
-
-                // Samotný lilek
-                ctx.fillStyle = "#8e44ad";
-                ctx.beginPath();
-                ctx.ellipse(curX, curY, 12, 16, 0, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.fillStyle = "#27ae60";
-                ctx.fillRect(curX - 3, curY - 20, 6, 6);
-            }
-
-            // Skóre
-            ctx.fillStyle = "#fff";
-            ctx.font = "bold 24px 'Courier New'";
-            ctx.fillText("SCORE: " + score, canvas.width / 2 - 65, 40);
+            // Spodní silnice
+            ctx.fillStyle = "#333";
+            ctx.fillRect(0, canvas.height - 100, canvas.width, 100);
         }
 
-        function loop() {
-            update();
-            draw();
-            requestAnimationFrame(loop);
-        }
+        // ==========================================
+        // SEKCE 2: OBRÁZEK A OVLÁDÁNÍ
+        // ==========================================
+        
+        const playerImg = new Image();
+        playerImg.src = "player.png"; // Opraveno na přesný název tvého souboru!
+        
+        let imageLoaded = false;
+        playerImg.onload = () => {
+            imageLoaded = true;
+        };
 
-        // Ovládání šipkami
+        const positions = [
+            { x: buildingWidth + 30, y: 200 }, // 0: Horní levá rampa
+            { x: buildingWidth + 30, y: 420 }, // 1: Dolní levá rampa
+            { x: canvas.width - buildingWidth - 75, y: 200 }, // 2: Horní pravá rampa
+            { x: canvas.width - buildingWidth - 75, y: 420 }  // 3: Dolní pravá rampa
+        ];
+
+        let currentPosIndex = 1;
+
         window.addEventListener("keydown", (e) => {
             if (e.key === "ArrowUp") {
-                playerPosIndex = playerPosIndex > 1 ? playerPosIndex - 2 : playerPosIndex;
-            } else if (e.key === "ArrowDown") {
-                playerPosIndex = playerPosIndex < 2 ? playerPosIndex + 2 : playerPosIndex;
-            } else if (e.key === "ArrowLeft") {
-                playerPosIndex = (playerPosIndex === 2 || playerPosIndex === 3) ? 0 : playerPosIndex;
-            } else if (e.key === "ArrowRight") {
-                playerPosIndex = (playerPosIndex === 0 || playerPosIndex === 1) ? 2 : playerPosIndex;
+                if (currentPosIndex === 1) currentPosIndex = 0;
+                if (currentPosIndex === 3) currentPosIndex = 2;
+            }
+            if (e.key === "ArrowDown") {
+                if (currentPosIndex === 0) currentPosIndex = 1;
+                if (currentPosIndex === 2) currentPosIndex = 3;
+            }
+            if (e.key === "ArrowLeft") {
+                if (currentPosIndex === 2) currentPosIndex = 0;
+                if (currentPosIndex === 3) currentPosIndex = 1;
+            }
+            if (e.key === "ArrowRight") {
+                if (currentPosIndex === 0) currentPosIndex = 2;
+                if (currentPosIndex === 1) currentPosIndex = 3;
             }
         });
 
-        spawnEgg();
-        loop();
+        function drawPlayer() {
+            let targetPos = positions[currentPosIndex];
+            if (imageLoaded || playerImg.complete) {
+                ctx.drawImage(playerImg, targetPos.x, targetPos.y, 45, 65);
+            } else {
+                // Kdyby se obrázek ještě nahrával, vykreslíme záložní obdélník, ať to vidíme
+                ctx.fillStyle = "#ffcc99";
+                ctx.fillRect(targetPos.x, targetPos.y, 45, 65);
+            }
+        }
+
+        // ==========================================
+        // HLAVNÍ HERNÍ SMYČKA
+        // ==========================================
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawEnvironment(); 
+            drawPlayer();      
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Spuštění smyčky rovnou (obrázek se dokreslí hned jak dorazí)
+        gameLoop();
     </script>
 </body>
 </html>
