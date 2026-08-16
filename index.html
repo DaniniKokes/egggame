@@ -27,7 +27,7 @@
         const ctx = canvas.getContext("2d");
 
         // ==========================================
-        // SEKCE 1: BUDOVY A PROSTŘEDÍ (Posunuté okno dolů)
+        // SEKCE 1: BUDOVY A PROSTŘEDÍ (Přesně zarovnaná okna a rampy)
         // ==========================================
         const buildingWidth = 220;
         const themeColor = "#111111";
@@ -68,34 +68,35 @@
 
             rooms.forEach(r => {
                 if (r.side === 'left') {
+                    // Oranžová místnost (končí na y + 70)
                     ctx.fillStyle = "#d49a4f";
                     ctx.fillRect(0, r.y - 15, buildingWidth - 20, 85);
                     
-                    // Černé okno posunuté níže (+15 místo +10)
+                    // Černé okno posunuté přesně tak, aby jeho spodek byl na r.y + 70
                     ctx.fillStyle = themeColor;
-                    ctx.fillRect(buildingWidth - 20, r.y + 15, 20, 50);
+                    ctx.fillRect(buildingWidth - 20, r.y + 20, 20, 50);
 
-                    // Začátek rampy přesně navazuje na okno
+                    // Rampa začíná přesně v dolním rohu okna
                     ctx.strokeStyle = themeColor;
                     ctx.lineWidth = 6;
                     ctx.beginPath();
-                    ctx.moveTo(buildingWidth, r.y + 65);
-                    ctx.lineTo(buildingWidth + 70, r.y + 125);
+                    ctx.moveTo(buildingWidth, r.y + 70);
+                    ctx.lineTo(buildingWidth + 70, r.y + 130);
                     ctx.stroke();
                 } else {
                     ctx.fillStyle = "#d49a4f";
                     ctx.fillRect(canvas.width - buildingWidth + 20, r.y - 15, buildingWidth - 20, 85);
 
-                    // Černé okno posunuté níže
+                    // Černé okno na pravé straně
                     ctx.fillStyle = themeColor;
-                    ctx.fillRect(canvas.width - buildingWidth, r.y + 15, 20, 50);
+                    ctx.fillRect(canvas.width - buildingWidth, r.y + 20, 20, 50);
 
-                    // Začátek pravé rampy
+                    // Pravá rampa
                     ctx.strokeStyle = themeColor;
                     ctx.lineWidth = 6;
                     ctx.beginPath();
-                    ctx.moveTo(canvas.width - buildingWidth, r.y + 65);
-                    ctx.lineTo(canvas.width - buildingWidth - 70, r.y + 125);
+                    ctx.moveTo(canvas.width - buildingWidth, r.y + 70);
+                    ctx.lineTo(canvas.width - buildingWidth - 70, r.y + 130);
                     ctx.stroke();
                 }
             });
@@ -167,8 +168,8 @@
             }
         }
 
-        // ==========================================
-        // SEKCE 3: LILKY (DOPLADĚNÁ VÝŠKA A MILIMETRY)
+       // ==========================================
+        // SEKCE 3: LILKY (Perfektně sladěno s novým oknem)
         // ==========================================
         const lilekImg = new Image();
         lilekImg.src = "lilek.png"; 
@@ -182,7 +183,7 @@
 
             let isLeft = r.side === 'left';
             let startX = isLeft ? 30 : canvas.width - 30;
-            let startY = r.y + 68; // Přesně na spodní podlaze místnosti
+            let startY = r.y + 70; // Přesně na podlaze místnosti
 
             lilky.push({
                 roomIndex: rIdx,
@@ -210,13 +211,13 @@
 
                     if (l.isLeft) {
                         l.x += l.speed;
-                        l.y = r.y + 68;
+                        l.y = r.y + 70;
                         if (l.x >= windowX) {
                             l.state = 'ramp';
                         }
                     } else {
                         l.x -= l.speed;
-                        l.y = r.y + 68;
+                        l.y = r.y + 70;
                         if (l.x <= windowX) {
                             l.state = 'ramp';
                         }
@@ -226,14 +227,13 @@
                     if (l.isLeft) {
                         l.x += l.speed;
                         let rampStartX = buildingWidth;
-                        let rampStartY = r.y + 65;
+                        let rampStartY = r.y + 70;
                         let progress = (l.x - rampStartX) / 70; 
-                        // Přidáno zvednutí o pár pixelů nahoru, aby lilek ject přímo po horní hraně rampy
-                        l.y = rampStartY + (progress * 60) - 6; 
+                        l.y = rampStartY + (progress * 60) - 6; // Zvednuto o kousek, aby jel po povrchu rampy
                     } else {
                         l.x -= l.speed;
                         let rampStartX = canvas.width - buildingWidth;
-                        let rampStartY = r.y + 65;
+                        let rampStartY = r.y + 70;
                         let progress = (rampStartX - l.x) / 70;
                         l.y = rampStartY + (progress * 60) - 6;
                     }
