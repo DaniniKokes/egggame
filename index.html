@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>Egg & Lilek - Doladěné detaily</title>
+    <title>Egg & Lilek - Kompletní hra</title>
     <style>
         body { 
             margin: 0; 
@@ -16,7 +16,7 @@
         }
         canvas { 
             border: 4px solid #444; 
-            background: #87CEEB; 
+            background: #2b2b2b; 
         }
     </style>
 </head>
@@ -26,8 +26,8 @@
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
-     // ==========================================
-        // SEKCE 1: BUDOVY, ULICE, ZEBRY A MENŠÍ LAMPY
+        // ==========================================
+        // SEKCE 1: BUDOVY, ULICE, ZEBRY A LAMPY
         // ==========================================
         const buildingWidth = 220;
         const themeColor = "#111111";
@@ -127,18 +127,16 @@
                 }
             });
 
-            // 7. Zmenšené lampy: jedny mezi rampami (uprostřed) a jedny dole
+            // 7. Zmenšené lampy (mezi rampami a dole)
             const lampYPositions = [240, 480]; 
 
             lampYPositions.forEach(lampY => {
-                // Menší žlutá záře lampy
                 ctx.fillStyle = "rgba(241, 196, 15, 0.3)";
                 ctx.beginPath();
                 ctx.arc(buildingWidth + 15, lampY, 30, 0, Math.PI * 2);
                 ctx.arc(canvas.width - buildingWidth - 15, lampY, 30, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Sloup lampy vlevo (menší)
                 ctx.fillStyle = "#555";
                 ctx.fillRect(buildingWidth + 13, lampY - 15, 4, 30);
                 ctx.fillStyle = "#f1c40f";
@@ -146,7 +144,6 @@
                 ctx.arc(buildingWidth + 15, lampY, 3, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Sloup lampy vpravo (menší)
                 ctx.fillStyle = "#555";
                 ctx.fillRect(canvas.width - buildingWidth - 17, lampY - 15, 4, 30);
                 ctx.fillStyle = "#f1c40f";
@@ -161,22 +158,22 @@
         }
 
         // ==========================================
-        // SEKCE 2: PANÁČEK, POZICE POD RAMPOU A OTÁČENÍ
+        // SEKCE 2: PANÁČEK, POZICE A OTÁČENÍ
         // ==========================================
         const playerImg = new Image();
         playerImg.src = "player.png";
 
-        // Pozice přesně pod konci ramp (posunuto víc do ulice)
         const positions = [
-            { x: buildingWidth + 50, y: 155, roomIndex: 0, side: 'left' },  // Horní levá
-            { x: buildingWidth + 50, y: 375, roomIndex: 1, side: 'left' },  // Dolní levá
-            { x: canvas.width - buildingWidth - 95, y: 155, roomIndex: 2, side: 'right' }, // Horní pravá
-            { x: canvas.width - buildingWidth - 95, y: 375, roomIndex: 3, side: 'right' }  // Dolní pravá
+            { x: buildingWidth + 50, y: 155, roomIndex: 0, side: 'left' },  
+            { x: buildingWidth + 50, y: 375, roomIndex: 1, side: 'left' },  
+            { x: canvas.width - buildingWidth - 95, y: 155, roomIndex: 2, side: 'right' }, 
+            { x: canvas.width - buildingWidth - 95, y: 375, roomIndex: 3, side: 'right' }  
         ];
 
         let currentPosIndex = 1;
         let animTimer = 0;
         let isMovingEffect = false;
+        let score = 0; // Počítadlo skóre
 
         window.addEventListener("keydown", (e) => {
             let oldIndex = currentPosIndex;
@@ -219,10 +216,9 @@
             }
 
             ctx.save();
-            // Pokud je panáček na pravé straně, otočíme ho zrcadlově doleva, aby koukal dovnitř k rampě
             if (targetPos.side === 'right') {
                 ctx.translate(renderX + width / 2, renderY + height / 2);
-                ctx.scale(-1, 1); // Zrcadlení podle osy Y
+                ctx.scale(-1, 1);
                 ctx.translate(-(renderX + width / 2), -(renderY + height / 2));
             }
 
@@ -232,8 +228,8 @@
             ctx.restore();
         }
 
-       // ==========================================
-        // SEKCE 3: LILKY (S KUTÁLENÍM / ROTACÍ)
+        // ==========================================
+        // SEKCE 3: LILKY (KUTÁLENÍ S ROTACÍ)
         // ==========================================
         const lilekImg = new Image();
         lilekImg.src = "lilek.png"; 
@@ -256,7 +252,7 @@
                 isLeft: isLeft,
                 speed: 1.1,
                 state: 'room',
-                angle: 0 // Úhel rotace pro kutálení
+                angle: 0 
             });
         }
 
@@ -277,7 +273,7 @@
                     if (l.isLeft) {
                         l.x += l.speed;
                         l.y = r.y + 70;
-                        l.angle += 0.05; // Točí se při chůzi v místnosti
+                        l.angle += 0.05;
                         if (l.x >= windowX) {
                             l.state = 'ramp';
                         }
@@ -297,7 +293,7 @@
                         let rampStartY = r.y + 70;
                         let progress = (l.x - rampStartX) / 70; 
                         l.y = rampStartY + (progress * 60) - 6; 
-                        l.angle += 0.08; // Rychlejší kutálení na rampě
+                        l.angle += 0.08;
                     } else {
                         l.x -= l.speed;
                         let rampStartX = canvas.width - buildingWidth;
@@ -308,20 +304,19 @@
                     }
                 }
 
-                // Vykreslení lilku s rotací (kutálení)
                 ctx.save();
-                ctx.translate(l.x, l.y - 10); // Posuneme střed otáčení na pozici lilku
-                ctx.rotate(l.angle);        // Otočíme o aktuální úhel
+                ctx.translate(l.x, l.y - 10);
+                ctx.rotate(l.angle);
 
                 if (lilekImg.complete && lilekImg.naturalWidth !== 0) {
-                    ctx.drawImage(lilekImg, -15, -15, 30, 30); // Kreslíme centrovaně vůči středu otáčení
+                    ctx.drawImage(lilekImg, -15, -15, 30, 30);
                 } else {
                     ctx.fillStyle = "#800080";
                     ctx.beginPath();
                     ctx.arc(0, 0, 12, 0, Math.PI * 2);
                     ctx.fill();
                 }
-                ctx.restore(); // Vrátíme plátno do původního stavu pro zbytek hry
+                ctx.restore();
 
                 // Kontrola chycení panáčkem
                 let targetPos = positions[l.roomIndex];
@@ -331,11 +326,30 @@
                 let distance = Math.hypot(l.x - catchAreaX, l.y - catchAreaY);
                 if (distance < 30) {
                     lilky.splice(i, 1); 
+                    score++; // Přičtení bodu za chycený lilek
                 } 
                 else if ((l.isLeft && l.x > buildingWidth + 75) || (!l.isLeft && l.x < canvas.width - buildingWidth - 75)) {
                     lilky.splice(i, 1); 
                 }
             }
+        }
+
+        // ==========================================
+        // SKÓRE TABULE
+        // ==========================================
+        function drawScore() {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+            ctx.fillRect(canvas.width / 2 - 90, 15, 180, 40);
+            
+            ctx.strokeStyle = "#f1c40f";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(canvas.width / 2 - 90, 15, 180, 40);
+
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 20px 'Courier New', Courier, monospace";
+            ctx.textAlign = "center";
+            ctx.fillText("Lilky: " + score, canvas.width / 2, 42);
+            ctx.textAlign = "start";
         }
 
         // ==========================================
@@ -345,6 +359,7 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             drawEnvironment(); 
+            drawScore();
             updateAndDrawLilky();
             drawPlayer();      
 
