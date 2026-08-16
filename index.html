@@ -161,16 +161,17 @@
         }
 
         // ==========================================
-        // SEKCE 2: PANÁČEK A OVLÁDÁNÍ
+        // SEKCE 2: PANÁČEK, POZICE POD RAMPOU A OTÁČENÍ
         // ==========================================
         const playerImg = new Image();
         playerImg.src = "player.png";
 
+        // Pozice přesně pod konci ramp (posunuto víc do ulice)
         const positions = [
-            { x: buildingWidth + 30, y: 200, roomIndex: 0 }, 
-            { x: buildingWidth + 30, y: 420, roomIndex: 1 }, 
-            { x: canvas.width - buildingWidth - 75, y: 200, roomIndex: 2 }, 
-            { x: canvas.width - buildingWidth - 75, y: 420, roomIndex: 3 }  
+            { x: buildingWidth + 50, y: 155, roomIndex: 0, side: 'left' },  // Horní levá
+            { x: buildingWidth + 50, y: 375, roomIndex: 1, side: 'left' },  // Dolní levá
+            { x: canvas.width - buildingWidth - 95, y: 155, roomIndex: 2, side: 'right' }, // Horní pravá
+            { x: canvas.width - buildingWidth - 95, y: 375, roomIndex: 3, side: 'right' }  // Dolní pravá
         ];
 
         let currentPosIndex = 1;
@@ -217,9 +218,18 @@
                 if (animTimer <= 0) isMovingEffect = false;
             }
 
+            ctx.save();
+            // Pokud je panáček na pravé straně, otočíme ho zrcadlově doleva, aby koukal dovnitř k rampě
+            if (targetPos.side === 'right') {
+                ctx.translate(renderX + width / 2, renderY + height / 2);
+                ctx.scale(-1, 1); // Zrcadlení podle osy Y
+                ctx.translate(-(renderX + width / 2), -(renderY + height / 2));
+            }
+
             if (playerImg.complete) {
                 ctx.drawImage(playerImg, renderX, renderY, width, height);
             }
+            ctx.restore();
         }
 
        // ==========================================
