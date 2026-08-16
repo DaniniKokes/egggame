@@ -164,7 +164,7 @@
         }
 
         // ==========================================
-        // SEKCE 3: LILKY (SPRÁVNÝ POHYB V MÍSTNOSTI A NA RAMPĚ)
+        // SEKCE 3: LILKY (SPRÁVNÁ POZICE MÍSTNOSTI A RAMPY)
         // ==========================================
         const lilekImg = new Image();
         lilekImg.src = "lilek.png"; 
@@ -178,10 +178,10 @@
 
             let isLeft = r.side === 'left';
             
-            // Startuje uvnitř budovy u zadní stěny
-            let startX = isLeft ? 40 : canvas.width - 40;
-            // Výška přesně na podlaze místnosti uvnitř budovy
-            let startY = r.y + 40; 
+            // Startuje uvnitř místnosti
+            let startX = isLeft ? 50 : canvas.width - 50;
+            // Výška přesně na podlaze místnosti (r.y + 10 je horní okraj místnosti, podlaha je níže)
+            let startY = r.y + 50; 
 
             lilky.push({
                 roomIndex: rIdx,
@@ -204,18 +204,21 @@
                 let l = lilky[i];
                 let r = rooms[l.roomIndex];
 
-                // FÁZE 1: Běží uvnitř místnosti k oknu
+                // FÁZE 1: Běží uvnitř místnosti k oknu / průchodu do rampy
                 if (l.state === 'room') {
+                    // Pozice, kde končí místnost a začíná rampa
+                    let windowX = l.isLeft ? (buildingWidth - 20) : (canvas.width - buildingWidth + 20);
+
                     if (l.isLeft) {
                         l.x += l.speed;
-                        // Okno a začátek rampy na levé budově je na pozici buildingWidth (220)
-                        if (l.x >= buildingWidth) {
+                        l.y = r.y + 50; // drží se rovně na podlaze místnosti
+                        if (l.x >= windowX) {
                             l.state = 'ramp';
                         }
                     } else {
                         l.x -= l.speed;
-                        // Okno a začátek rampy na pravé budově je na pozici canvas.width - buildingWidth (680)
-                        if (l.x <= canvas.width - buildingWidth) {
+                        l.y = r.y + 50; // drží se rovně na podlaze místnosti
+                        if (l.x <= windowX) {
                             l.state = 'ramp';
                         }
                     }
@@ -224,26 +227,29 @@
                 else if (l.state === 'ramp') {
                     if (l.isLeft) {
                         l.x += l.speed;
-                        let rampStartX = buildingWidth;
-                        let rampStartY = r.y + 60;
-                        let progress = (l.x - rampStartX) / 70; // Délka rampy
-                        l.y = rampStartY + (progress * 60);
+                        let rampStartX = buildingWidth - 20;
+                        let rampStartY = r.y + 60; // přesný začátek rampy u zdi
+                        let progress = (l.x - rampStartX) / 70; // délka rampy
+                        // Výpočet y tak, aby lilek jel přesně po čáře rampy (spojnice od okna k panáčkovi)
+                        let targetY = r.y + 120;
+                        l.y = rampStartY + progress * (targetY - rampStartY);
                     } else {
                         l.x -= l.speed;
-                        let rampStartX = canvas.width - buildingWidth;
+                        let rampStartX = canvas.width - buildingWidth + 20;
                         let rampStartY = r.y + 60;
                         let progress = (rampStartX - l.x) / 70;
-                        l.y = rampStartY + (progress * 60);
+                        let targetY = r.y + 120;
+                        l.y = rampStartY + progress * (targetY - rampStartY);
                     }
                 }
 
-                // Vykreslení lilku (vycentrovaný)
+                // Vykreslení lilku (vycentrovaný tak, aby seděl na čáře)
                 if (lilekImg.complete && lilekImg.naturalWidth !== 0) {
-                    ctx.drawImage(lilekImg, l.x - 15, l.y - 15, 30, 30);
+                    ctx.drawImage(lilekImg, l.x - 15, l.y - 25, 30, 30);
                 } else {
                     ctx.fillStyle = "#800080";
                     ctx.beginPath();
-                    ctx.arc(l.x, l.y, 12, 0, Math.PI * 2);
+                    ctx.arc(l.x, l.y - 10, 12, 0, Math.PI * 2);
                     ctx.fill();
                 }
 
@@ -256,7 +262,6 @@
                 if (distance < 30) {
                     lilky.splice(i, 1); // Chyceno!
                 } 
-                // Pokud dojede na konec a hráč minul
                 else if ((l.isLeft && l.x > buildingWidth + 75) || (!l.isLeft && l.x < canvas.width - buildingWidth - 75)) {
                     lilky.splice(i, 1); 
                 }
