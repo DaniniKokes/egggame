@@ -163,8 +163,8 @@
             }
         }
 
-        // ==========================================
-        // SEKCE 3: LILKY (PŘESNÉ POZICE DLE RAMP)
+       // ==========================================
+        // SEKCE 3: LILKY (OPRAVENÁ POZICE V MÍSTNOSTI A NA RAMPĚ)
         // ==========================================
         const lilekImg = new Image();
         lilekImg.src = "lilek.png"; 
@@ -178,10 +178,10 @@
 
             let isLeft = r.side === 'left';
             
-            // Startuje hluboko uvnitř místnosti
+            // Startuje uvnitř budovy u zadní stěny
             let startX = isLeft ? 30 : canvas.width - 30;
-            // Výška v místnosti (zarovnáno na podlahu místnosti)
-            let startY = r.y + 50; 
+            // Výška přesně na spodní hraně oranžové místnosti (r.y + 70 je spodek oranžové desky)
+            let startY = r.y + 70; 
 
             lilky.push({
                 roomIndex: rIdx,
@@ -204,32 +204,32 @@
                 let l = lilky[i];
                 let r = rooms[l.roomIndex];
 
-                // FÁZE 1: Běží uvnitř místnosti k oknu (k začátku rampy)
+                // FÁZE 1: Běží rovně po spodní podlaze místnosti k černé díře (oknu)
                 if (l.state === 'room') {
+                    // Okno končí u okraje budovy (buildingWidth pro levou, canvas.width - buildingWidth pro pravou)
                     let windowX = l.isLeft ? buildingWidth : (canvas.width - buildingWidth);
 
                     if (l.isLeft) {
                         l.x += l.speed;
-                        l.y = r.y + 50; // drží se podlahy v místnosti
+                        l.y = r.y + 70; // drží se podlahy místnosti
                         if (l.x >= windowX) {
                             l.state = 'ramp';
                         }
                     } else {
                         l.x -= l.speed;
-                        l.y = r.y + 50; // drží se podlahy v místnosti
+                        l.y = r.y + 70; // drží se podlahy místnosti
                         if (l.x <= windowX) {
                             l.state = 'ramp';
                         }
                     }
                 } 
-                // FÁZE 2: Kutálí se přesně po povrchu šikmé rampy
+                // FÁZE 2: Kutálí se přesně po rampě
                 else if (l.state === 'ramp') {
                     if (l.isLeft) {
                         l.x += l.speed;
                         let rampStartX = buildingWidth;
-                        let rampStartY = r.y + 60;
-                        // Postup po rampě (délka X je 70 pixelů, délka Y je 60 pixelů)
-                        let progress = (l.x - rampStartX) / 70; 
+                        let rampStartY = r.y + 60; // začátek rampy v černé díře
+                        let progress = (l.x - rampStartX) / 70; // délka rampy
                         l.y = rampStartY + (progress * 60);
                     } else {
                         l.x -= l.speed;
@@ -240,7 +240,7 @@
                     }
                 }
 
-                // Vykreslení lilku (vycentrovaný tak, aby seděl přímo na čáře rampy/podlahy)
+                // Vykreslení lilku
                 if (lilekImg.complete && lilekImg.naturalWidth !== 0) {
                     ctx.drawImage(lilekImg, l.x - 15, l.y - 20, 30, 30);
                 } else {
@@ -259,7 +259,6 @@
                 if (distance < 30) {
                     lilky.splice(i, 1); // Chyceno!
                 } 
-                // Pokud dojede na konec a hráč minul
                 else if ((l.isLeft && l.x > buildingWidth + 75) || (!l.isLeft && l.x < canvas.width - buildingWidth - 75)) {
                     lilky.splice(i, 1); 
                 }
