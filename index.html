@@ -169,7 +169,7 @@
         }
 
        // ==========================================
-        // SEKCE 3: LILKY (Perfektně sladěno s novým oknem)
+        // SEKCE 3: LILKY (S KUTÁLENÍM / ROTACÍ)
         // ==========================================
         const lilekImg = new Image();
         lilekImg.src = "lilek.png"; 
@@ -183,7 +183,7 @@
 
             let isLeft = r.side === 'left';
             let startX = isLeft ? 30 : canvas.width - 30;
-            let startY = r.y + 70; // Přesně na podlaze místnosti
+            let startY = r.y + 70; 
 
             lilky.push({
                 roomIndex: rIdx,
@@ -191,7 +191,8 @@
                 y: startY,
                 isLeft: isLeft,
                 speed: 1.1,
-                state: 'room' 
+                state: 'room',
+                angle: 0 // Úhel rotace pro kutálení
             });
         }
 
@@ -212,12 +213,14 @@
                     if (l.isLeft) {
                         l.x += l.speed;
                         l.y = r.y + 70;
+                        l.angle += 0.05; // Točí se při chůzi v místnosti
                         if (l.x >= windowX) {
                             l.state = 'ramp';
                         }
                     } else {
                         l.x -= l.speed;
                         l.y = r.y + 70;
+                        l.angle -= 0.05;
                         if (l.x <= windowX) {
                             l.state = 'ramp';
                         }
@@ -229,25 +232,32 @@
                         let rampStartX = buildingWidth;
                         let rampStartY = r.y + 70;
                         let progress = (l.x - rampStartX) / 70; 
-                        l.y = rampStartY + (progress * 60) - 6; // Zvednuto o kousek, aby jel po povrchu rampy
+                        l.y = rampStartY + (progress * 60) - 6; 
+                        l.angle += 0.08; // Rychlejší kutálení na rampě
                     } else {
                         l.x -= l.speed;
                         let rampStartX = canvas.width - buildingWidth;
                         let rampStartY = r.y + 70;
                         let progress = (rampStartX - l.x) / 70;
                         l.y = rampStartY + (progress * 60) - 6;
+                        l.angle -= 0.08;
                     }
                 }
 
-                // Vykreslení lilku
+                // Vykreslení lilku s rotací (kutálení)
+                ctx.save();
+                ctx.translate(l.x, l.y - 10); // Posuneme střed otáčení na pozici lilku
+                ctx.rotate(l.angle);        // Otočíme o aktuální úhel
+
                 if (lilekImg.complete && lilekImg.naturalWidth !== 0) {
-                    ctx.drawImage(lilekImg, l.x - 15, l.y - 20, 30, 30);
+                    ctx.drawImage(lilekImg, -15, -15, 30, 30); // Kreslíme centrovaně vůči středu otáčení
                 } else {
                     ctx.fillStyle = "#800080";
                     ctx.beginPath();
-                    ctx.arc(l.x, l.y - 5, 12, 0, Math.PI * 2);
+                    ctx.arc(0, 0, 12, 0, Math.PI * 2);
                     ctx.fill();
                 }
+                ctx.restore(); // Vrátíme plátno do původního stavu pro zbytek hry
 
                 // Kontrola chycení panáčkem
                 let targetPos = positions[l.roomIndex];
