@@ -26,8 +26,8 @@
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
-      // ==========================================
-        // SEKCE 1: BUDOVY, ULICE, ZEBRY A LAMPY DOLE MISO RAMP
+     // ==========================================
+        // SEKCE 1: BUDOVY, ULICE, ZEBRY A MENŠÍ LAMPY
         // ==========================================
         const buildingWidth = 220;
         const themeColor = "#111111";
@@ -73,7 +73,7 @@
             drawCleanBrickBuilding(0, buildingWidth, 'left');
             drawCleanBrickBuilding(canvas.width - buildingWidth, buildingWidth, 'right');
 
-            // 4. Přechody pro chodce (zebry) přes celou silnici
+            // 4. Přechody pro chodce (zebry)
             ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
             
             let zebraTopY = 195;
@@ -127,31 +127,31 @@
                 }
             });
 
-            // 7. Lampy veřejného osvětlení umístěné ÚPLNĚ DOLE (vůbec nezasahují do ramp)
-            const lampYPositions = [480]; // Zcela dole u dolního okraje ulice
+            // 7. Zmenšené lampy: jedny mezi rampami (uprostřed) a jedny dole
+            const lampYPositions = [240, 480]; 
 
             lampYPositions.forEach(lampY => {
-                // Žlutá záře lampy na levém chodníku
-                ctx.fillStyle = "rgba(241, 196, 15, 0.25)";
+                // Menší žlutá záře lampy
+                ctx.fillStyle = "rgba(241, 196, 15, 0.3)";
                 ctx.beginPath();
-                ctx.arc(buildingWidth + 15, lampY, 45, 0, Math.PI * 2);
-                ctx.arc(canvas.width - buildingWidth - 15, lampY, 45, 0, Math.PI * 2);
+                ctx.arc(buildingWidth + 15, lampY, 30, 0, Math.PI * 2);
+                ctx.arc(canvas.width - buildingWidth - 15, lampY, 30, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Sloup lampy vlevo
+                // Sloup lampy vlevo (menší)
                 ctx.fillStyle = "#555";
-                ctx.fillRect(buildingWidth + 12, lampY - 20, 6, 40);
+                ctx.fillRect(buildingWidth + 13, lampY - 15, 4, 30);
                 ctx.fillStyle = "#f1c40f";
                 ctx.beginPath();
-                ctx.arc(buildingWidth + 15, lampY, 4, 0, Math.PI * 2);
+                ctx.arc(buildingWidth + 15, lampY, 3, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Sloup lampy vpravo
+                // Sloup lampy vpravo (menší)
                 ctx.fillStyle = "#555";
-                ctx.fillRect(canvas.width - buildingWidth - 18, lampY - 20, 6, 40);
+                ctx.fillRect(canvas.width - buildingWidth - 17, lampY - 15, 4, 30);
                 ctx.fillStyle = "#f1c40f";
                 ctx.beginPath();
-                ctx.arc(canvas.width - buildingWidth - 15, lampY, 4, 0, Math.PI * 2);
+                ctx.arc(canvas.width - buildingWidth - 15, lampY, 3, 0, Math.PI * 2);
                 ctx.fill();
             });
 
