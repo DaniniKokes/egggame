@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>Egg & Lilek - Pohyb a zhoupnutí</title>
+    <title>Egg & Lilek - Krok 3: Padající lilky</title>
     <style>
         body { 
             margin: 0; 
@@ -27,7 +27,7 @@
         const ctx = canvas.getContext("2d");
 
         // ==========================================
-        // SEKCE 1: BUDOVY A PROSTŘEDÍ (Hotovo)
+        // SEKCE 1: BUDOVY A PROSTŘEDÍ
         // ==========================================
         const buildingWidth = 220;
         const themeColor = "#111111";
@@ -102,22 +102,19 @@
         }
 
         // ==========================================
-        // SEKCE 2: PANÁČEK S ANIMACÍ POHYBU (ZHOUPNUTÍ)
+        // SEKCE 2: PANÁČEK A OVLÁDÁNÍ
         // ==========================================
-        
         const playerImg = new Image();
         playerImg.src = "player.png";
 
         const positions = [
-            { x: buildingWidth + 30, y: 200 }, 
-            { x: buildingWidth + 30, y: 420 }, 
-            { x: canvas.width - buildingWidth - 75, y: 200 }, 
-            { x: canvas.width - buildingWidth - 75, y: 420 }  
+            { x: buildingWidth + 30, y: 200, roomIndex: 0 }, 
+            { x: buildingWidth + 30, y: 420, roomIndex: 1 }, 
+            { x: canvas.width - buildingWidth - 75, y: 200, roomIndex: 2 }, 
+            { x: canvas.width - buildingWidth - 75, roomIndex: 3, y: 420 }  
         ];
 
         let currentPosIndex = 1;
-        
-        // Proměnné pro efekt zhoupnutí při změně pozice
         let animTimer = 0;
         let isMovingEffect = false;
 
@@ -140,34 +137,110 @@
                 if (currentPosIndex === 1) currentPosIndex = 3;
             }
 
-            // Pokud se pozice změnila, spustíme krátký animační efekt zhoupnutí
             if (oldIndex !== currentPosIndex) {
                 isMovingEffect = true;
-                animTimer = 10; // trvání efektu v ticích
+                animTimer = 10;
             }
         });
 
         function drawPlayer() {
             let targetPos = positions[currentPosIndex];
-            
             let width = 45;
             let height = 65;
             let renderX = targetPos.x;
             let renderY = targetPos.y;
 
-            // Pokud probíhá efekt zhoupnutí, panáček se mírně smrští/roztáhne (chňapnutí)
             if (isMovingEffect) {
                 animTimer--;
-                width += 6;  // při skoku se mírně roztáhne do šířky
-                height -= 6; // a zmenší na výšku
+                width += 6;
+                height -= 6;
                 renderY += 4;
-                if (animTimer <= 0) {
-                    isMovingEffect = false;
-                }
+                if (animTimer <= 0) isMovingEffect = false;
             }
 
-            // Vykreslení obrázku
-            ctx.drawImage(playerImg, renderX, renderY, width, height);
+            if (playerImg.complete) {
+                ctx.drawImage(playerImg, renderX, renderY, width, height);
+            }
+        }
+
+        // ==========================================
+        // SEKCE 3: PADAJÍCÍ LILKY (EGG/LILCHEK LOGIKA)
+        // ==========================================
+        const lilekImg = new Image();
+        lilekImg.src = "lilek.png"; // Zde měj obrázek lilku
+
+        let lilky = [];
+        let spawnCounter = 0;
+
+        function spawnLilek() {
+            // Náhodně vybereme jednu ze 4 místností (0 až 3)
+            let rIdx = Math.floor(Math.random() * 4);
+            let r = rooms[rIdx];
+
+            // Definujeme dráhu podle toho, jestli padá z levé nebo pravé budovy
+            let isLeft = r.side === 'left';
+            let startX = isLeft ? buildingWidth : canvas.width - buildingWidth;
+            let startY = r.y + 60;
+
+            lilky.push({
+                roomIndex: rIdx,
+                x: startX,
+                y: startY,
+                isLeft: isLeft,
+                speed: 2.5
+            });
+        }
+
+        function updateAndDrawLilky() {
+            // Pravidelně pouštíme nové lilky
+            spawnCounter++;
+            if (spawnCounter > 120) { // každých cca 2 sekundy
+                spawnLilek();
+                spawnCounter = 0;
+            }
+
+            // Procházení a posun všech aktivních lilků
+            for (let i = lilky.length - 1; i >= 0; i--) {
+                let l = lilky[i];
+
+                // Pohyb po rampě dolů
+                if (l.isLeft) {
+                    l.x += l.speed;
+                    l.y += l.speed * 0.85;
+                } else {
+                    l.x -= l.speed;
+                    l.y += l.speed * 0.85;
+                }
+
+                // Vykreslení lilku (pokud obrázek existuje, jinak fialový kruh)
+                if (lilekImg.complete && lilekImg.naturalWidth !== 0) {
+                    ctx.drawImage(lilekImg, l.x - 15, l.y - 15, 30, 30);
+                } else {
+                    ctx.fillStyle = "#800080"; // fialová záloha
+                    ctx.beginPath();
+                    ctx.arc(l.x, l.y, 12, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Kontrola chycení (pokud je panáček na stejné pozici, kde lilek doběhl na konec rampy)
+                let targetPos = positions[l.roomIndex];
+                let catchAreaX = targetPos.x + 20;
+                let catchAreaY = targetPos.y + 30;
+
+                let distance = Math.hypot(l.x - catchAreaX, l.y - catchAreaY);
+                if (distance < 35) {
+                    // Lilek chycen! Smažeme ho ze seznamu
+                    lilky.splice(i, 1);
+                    // Tady pak můžeme přičíst skóre!
+                } 
+                // Pokud lilek přepadne dál (hráč ho minul)
+                else if ((l.isLeft && l.x > buildingWidth + 80) || (!l.isLeft && l.x < canvas.width - buildingWidth - 80)) {
+                    // Můžeme odebrat život nebo nechat spadnout na zem
+                    if (l.y > canvas.height - 120) {
+                        lilky.splice(i, 1);
+                    }
+                }
+            }
         }
 
         // ==========================================
@@ -177,15 +250,16 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             drawEnvironment(); 
+            updateAndDrawLilky();
             drawPlayer();      
 
             requestAnimationFrame(gameLoop);
         }
 
+        // Spuštění, až se načtou hlavní podklady
         playerImg.onload = () => {
             gameLoop();
         };
-
         if(playerImg.complete) {
             gameLoop();
         }
