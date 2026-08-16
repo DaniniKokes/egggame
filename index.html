@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>Egg & Lilek - Hra</title>
+    <title>Egg & Lilek - Pohyb a zhoupnutí</title>
     <style>
         body { 
             margin: 0; 
@@ -27,7 +27,7 @@
         const ctx = canvas.getContext("2d");
 
         // ==========================================
-        // SEKCE 1: BUDOVY A PROSTŘEDÍ
+        // SEKCE 1: BUDOVY A PROSTŘEDÍ (Hotovo)
         // ==========================================
         const buildingWidth = 220;
         const themeColor = "#111111";
@@ -102,27 +102,27 @@
         }
 
         // ==========================================
-        // SEKCE 2: OBRÁZEK A OVLÁDÁNÍ
+        // SEKCE 2: PANÁČEK S ANIMACÍ POHYBU (ZHOUPNUTÍ)
         // ==========================================
         
         const playerImg = new Image();
-        playerImg.src = "player.png"; // Opraveno na přesný název tvého souboru!
-        
-        let imageLoaded = false;
-        playerImg.onload = () => {
-            imageLoaded = true;
-        };
+        playerImg.src = "player.png";
 
         const positions = [
-            { x: buildingWidth + 30, y: 200 }, // 0: Horní levá rampa
-            { x: buildingWidth + 30, y: 420 }, // 1: Dolní levá rampa
-            { x: canvas.width - buildingWidth - 75, y: 200 }, // 2: Horní pravá rampa
-            { x: canvas.width - buildingWidth - 75, y: 420 }  // 3: Dolní pravá rampa
+            { x: buildingWidth + 30, y: 200 }, 
+            { x: buildingWidth + 30, y: 420 }, 
+            { x: canvas.width - buildingWidth - 75, y: 200 }, 
+            { x: canvas.width - buildingWidth - 75, y: 420 }  
         ];
 
         let currentPosIndex = 1;
+        
+        // Proměnné pro efekt zhoupnutí při změně pozice
+        let animTimer = 0;
+        let isMovingEffect = false;
 
         window.addEventListener("keydown", (e) => {
+            let oldIndex = currentPosIndex;
             if (e.key === "ArrowUp") {
                 if (currentPosIndex === 1) currentPosIndex = 0;
                 if (currentPosIndex === 3) currentPosIndex = 2;
@@ -139,17 +139,35 @@
                 if (currentPosIndex === 0) currentPosIndex = 2;
                 if (currentPosIndex === 1) currentPosIndex = 3;
             }
+
+            // Pokud se pozice změnila, spustíme krátký animační efekt zhoupnutí
+            if (oldIndex !== currentPosIndex) {
+                isMovingEffect = true;
+                animTimer = 10; // trvání efektu v ticích
+            }
         });
 
         function drawPlayer() {
             let targetPos = positions[currentPosIndex];
-            if (imageLoaded || playerImg.complete) {
-                ctx.drawImage(playerImg, targetPos.x, targetPos.y, 45, 65);
-            } else {
-                // Kdyby se obrázek ještě nahrával, vykreslíme záložní obdélník, ať to vidíme
-                ctx.fillStyle = "#ffcc99";
-                ctx.fillRect(targetPos.x, targetPos.y, 45, 65);
+            
+            let width = 45;
+            let height = 65;
+            let renderX = targetPos.x;
+            let renderY = targetPos.y;
+
+            // Pokud probíhá efekt zhoupnutí, panáček se mírně smrští/roztáhne (chňapnutí)
+            if (isMovingEffect) {
+                animTimer--;
+                width += 6;  // při skoku se mírně roztáhne do šířky
+                height -= 6; // a zmenší na výšku
+                renderY += 4;
+                if (animTimer <= 0) {
+                    isMovingEffect = false;
+                }
             }
+
+            // Vykreslení obrázku
+            ctx.drawImage(playerImg, renderX, renderY, width, height);
         }
 
         // ==========================================
@@ -164,8 +182,13 @@
             requestAnimationFrame(gameLoop);
         }
 
-        // Spuštění smyčky rovnou (obrázek se dokreslí hned jak dorazí)
-        gameLoop();
+        playerImg.onload = () => {
+            gameLoop();
+        };
+
+        if(playerImg.complete) {
+            gameLoop();
+        }
     </script>
 </body>
 </html>
