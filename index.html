@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>Egg & Lilek - Vylepšené starty lilků</title>
+    <title>Egg & Lilek - Kompletní hra</title>
     <style>
         body { 
             margin: 0; 
@@ -161,6 +161,8 @@
             if (playerImg.complete) {
                 ctx.drawImage(playerImg, renderX, renderY, width, height);
             }
+        }
+
         // ==========================================
         // SEKCE 3: LILKY (BĚH V MÍSTNOSTI A KUTÁLENÍ PO RAMPĚ)
         // ==========================================
@@ -178,7 +180,6 @@
             
             // Startuje hluboko v místnosti vlevo/vpravo
             let startX = isLeft ? 40 : canvas.width - 40;
-            // Výška přesně na podlaze místnosti
             let startY = r.y + 45; 
 
             lilky.push({
@@ -206,13 +207,11 @@
                 if (l.state === 'room') {
                     if (l.isLeft) {
                         l.x += l.speed;
-                        // Jakmile dorazí k hraně okna (buildingWidth), přepne se na rampu
                         if (l.x >= buildingWidth) {
                             l.state = 'ramp';
                         }
                     } else {
                         l.x -= l.speed;
-                        // Jakmile dorazí k pravému oknu
                         if (l.x <= canvas.width - buildingWidth) {
                             l.state = 'ramp';
                         }
@@ -222,10 +221,9 @@
                 else if (l.state === 'ramp') {
                     if (l.isLeft) {
                         l.x += l.speed;
-                        // Výpočet y podle sklonu rampy (začíná na y oken a klesá dolů k panáčkovi)
                         let rampStartX = buildingWidth;
                         let rampStartY = r.y + 60;
-                        let progress = (l.x - rampStartX) / 70; // 70 je délka rampy
+                        let progress = (l.x - rampStartX) / 70; 
                         l.y = rampStartY + (progress * 60);
                     } else {
                         l.x -= l.speed;
@@ -255,12 +253,11 @@
                 if (distance < 30) {
                     lilky.splice(i, 1); // Chyceno!
                 } 
-                // Pokud dojede na konec a hráč minul
                 else if ((l.isLeft && l.x > buildingWidth + 75) || (!l.isLeft && l.x < canvas.width - buildingWidth - 75)) {
                     lilky.splice(i, 1); 
                 }
             }
-        }   }
+        }
 
         // ==========================================
         // HLAVNÍ HERNÍ SMYČKA
