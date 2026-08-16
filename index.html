@@ -164,7 +164,7 @@
         }
 
         // ==========================================
-        // SEKCE 3: LILKY (BĚH V MÍSTNOSTI A KUTÁLENÍ PO RAMPĚ)
+        // SEKCE 3: LILKY (SPRÁVNÝ POHYB V MÍSTNOSTI A NA RAMPĚ)
         // ==========================================
         const lilekImg = new Image();
         lilekImg.src = "lilek.png"; 
@@ -178,9 +178,10 @@
 
             let isLeft = r.side === 'left';
             
-            // Startuje hluboko v místnosti vlevo/vpravo
+            // Startuje uvnitř budovy u zadní stěny
             let startX = isLeft ? 40 : canvas.width - 40;
-            let startY = r.y + 45; 
+            // Výška přesně na podlaze místnosti uvnitř budovy
+            let startY = r.y + 40; 
 
             lilky.push({
                 roomIndex: rIdx,
@@ -188,7 +189,7 @@
                 y: startY,
                 isLeft: isLeft,
                 speed: 1.2,
-                state: 'room' // 'room' = běží po místnosti, 'ramp' = kutálí se po rampě
+                state: 'room' // 'room' = běží v místnosti, 'ramp' = kutálí se po rampě
             });
         }
 
@@ -203,15 +204,17 @@
                 let l = lilky[i];
                 let r = rooms[l.roomIndex];
 
-                // FÁZE 1: Běží rovně po podlaze místnosti k oknu
+                // FÁZE 1: Běží uvnitř místnosti k oknu
                 if (l.state === 'room') {
                     if (l.isLeft) {
                         l.x += l.speed;
+                        // Okno a začátek rampy na levé budově je na pozici buildingWidth (220)
                         if (l.x >= buildingWidth) {
                             l.state = 'ramp';
                         }
                     } else {
                         l.x -= l.speed;
+                        // Okno a začátek rampy na pravé budově je na pozici canvas.width - buildingWidth (680)
                         if (l.x <= canvas.width - buildingWidth) {
                             l.state = 'ramp';
                         }
@@ -223,7 +226,7 @@
                         l.x += l.speed;
                         let rampStartX = buildingWidth;
                         let rampStartY = r.y + 60;
-                        let progress = (l.x - rampStartX) / 70; 
+                        let progress = (l.x - rampStartX) / 70; // Délka rampy
                         l.y = rampStartY + (progress * 60);
                     } else {
                         l.x -= l.speed;
@@ -234,13 +237,13 @@
                     }
                 }
 
-                // Vykreslení lilku
+                // Vykreslení lilku (vycentrovaný)
                 if (lilekImg.complete && lilekImg.naturalWidth !== 0) {
-                    ctx.drawImage(lilekImg, l.x - 15, l.y - 25, 30, 30);
+                    ctx.drawImage(lilekImg, l.x - 15, l.y - 15, 30, 30);
                 } else {
                     ctx.fillStyle = "#800080";
                     ctx.beginPath();
-                    ctx.arc(l.x, l.y - 10, 12, 0, Math.PI * 2);
+                    ctx.arc(l.x, l.y, 12, 0, Math.PI * 2);
                     ctx.fill();
                 }
 
@@ -253,12 +256,12 @@
                 if (distance < 30) {
                     lilky.splice(i, 1); // Chyceno!
                 } 
+                // Pokud dojede na konec a hráč minul
                 else if ((l.isLeft && l.x > buildingWidth + 75) || (!l.isLeft && l.x < canvas.width - buildingWidth - 75)) {
                     lilky.splice(i, 1); 
                 }
             }
         }
-
         // ==========================================
         // HLAVNÍ HERNÍ SMYČKA
         // ==========================================
