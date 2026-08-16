@@ -27,7 +27,7 @@
         const ctx = canvas.getContext("2d");
 
       // ==========================================
-        // SEKCE 1: BUDOVY, ULICE, LAMPY MIMO RAMPY A ZEBRY
+        // SEKCE 1: BUDOVY, ULICE, ZEBRY A LAMPY DOLE MISO RAMP
         // ==========================================
         const buildingWidth = 220;
         const themeColor = "#111111";
@@ -73,16 +73,14 @@
             drawCleanBrickBuilding(0, buildingWidth, 'left');
             drawCleanBrickBuilding(canvas.width - buildingWidth, buildingWidth, 'right');
 
-            // 4. Přechody pro chodce (zebry) přes celou silnici (nahoře a dole)
+            // 4. Přechody pro chodce (zebry) přes celou silnici
             ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
             
-            // Horní zebra (mezi horními patry)
             let zebraTopY = 195;
             for (let x = buildingWidth + 30; x < canvas.width - buildingWidth - 30; x += 25) {
                 ctx.fillRect(x, zebraTopY, 14, 35);
             }
 
-            // Dolní zebra (mezi dolními patry / kde stojí panáček)
             let zebraBottomY = 415;
             for (let x = buildingWidth + 30; x < canvas.width - buildingWidth - 30; x += 25) {
                 ctx.fillRect(x, zebraBottomY, 14, 35);
@@ -129,8 +127,8 @@
                 }
             });
 
-            // 7. Lampy veřejného osvětlení umístěné BEZPEČNĚ MIMO rampy (uprostřed mezi patry)
-            const lampYPositions = [165, 385]; // Přesně v místech, kde žádné rampy nejsou
+            // 7. Lampy veřejného osvětlení umístěné ÚPLNĚ DOLE (vůbec nezasahují do ramp)
+            const lampYPositions = [480]; // Zcela dole u dolního okraje ulice
 
             lampYPositions.forEach(lampY => {
                 // Žlutá záře lampy na levém chodníku
