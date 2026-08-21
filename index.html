@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>Egg & Lilek - Modern Retro Web3 Edition</title>
+    <title>Egg & Lilek - Audio Edition</title>
     <style>
         body { 
             margin: 0; 
@@ -26,6 +26,53 @@
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
+
+        // ==========================================
+        // WEBS AUDIO API (GENEROVÁNÍ ZVUKŮ)
+        // ==========================================
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            let now = audioCtx.currentTime;
+
+            if (type === 'catch') {
+                // Rychlé veselé cinknutí nahoru
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } else if (type === 'drop') {
+                // Hlubší tón při pádu na zem
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(50, now + 0.2);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            } else if (type === 'gameover') {
+                // Smutná sestupná melodička
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.setValueAtTime(200, now + 0.15);
+                osc.frequency.setValueAtTime(100, now + 0.3);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                osc.start(now);
+                osc.stop(now + 0.5);
+            }
+        }
 
         // ==========================================
         // SEKCE 1: BUDOVY, ULICE, ZEBRY A LAMPY
@@ -292,6 +339,7 @@
                     let distance = Math.hypot(l.x - catchAreaX, l.y - catchAreaY);
 
                     if (distance < 32 && currentPosIndex === l.roomIndex) {
+                        playSound('catch'); // Přehrání zvuku chycení
                         lilky.splice(i, 1); 
                         score++;
                         baseSpeed = 0.6 + (score * 0.03); 
@@ -313,9 +361,11 @@
                         l.state = 'ground';
                         
                         if (!l.counted) {
+                            playSound('drop'); // Přehrání zvuku dopadu na zem
                             lives--;
                             l.counted = true;
                             if (lives <= 0) {
+                                playSound('gameover');
                                 isGameOver = true;
                             }
                         }
@@ -345,17 +395,17 @@
         }
 
         // ==========================================
-        // MODERN RETRO UI (ANGLICKY VLEVO A VPRAVO)
+        // UI A GAME OVER
         // ==========================================
         function drawUI() {
             ctx.font = "bold 15px 'Courier New', Courier, monospace";
 
-            // 1. Levá budova: Skóre (EGGPLANTS)
+            // Levá budova: Skóre
             ctx.fillStyle = "rgba(15, 15, 15, 0.85)";
             ctx.beginPath();
             ctx.roundRect(15, 15, 160, 45, 8);
             ctx.fill();
-            ctx.strokeStyle = "#3498db"; // Moderní modrý neonový nádech
+            ctx.strokeStyle = "#3498db";
             ctx.lineWidth = 2;
             ctx.stroke();
 
@@ -365,13 +415,13 @@
             ctx.font = "bold 18px 'Courier New', Courier, monospace";
             ctx.fillText(score, 25, 52);
 
-            // 2. Pravá budova: Životy (LIVES)
+            // Pravá budova: Životy
             ctx.font = "bold 15px 'Courier New', Courier, monospace";
             ctx.fillStyle = "rgba(15, 15, 15, 0.85)";
             ctx.beginPath();
             ctx.roundRect(canvas.width - 175, 15, 160, 45, 8);
             ctx.fill();
-            ctx.strokeStyle = "#e74c3c"; // Moderní červený neonový nádech
+            ctx.strokeStyle = "#e74c3c";
             ctx.lineWidth = 2;
             ctx.stroke();
 
