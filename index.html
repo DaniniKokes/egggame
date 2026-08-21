@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>Egg & Lilek - Web3 Shop Edition</title>
+    <title>Egg & Lilek - Automatic Shop Entry</title>
     <style>
         body { 
             margin: 0; 
@@ -93,8 +93,9 @@
         ];
 
         let isShopOpen = false;
+        let shopTriggered = false; // Aby se shop spustil jen jednou po 100 lilcích
         let unlockedBoxes = { box1: true, box2: false, box3: false };
-        let activeBox = 1; // Aktuální vybraný box
+        let activeBox = 1;
 
         function drawCleanBrickBuilding(startX, width, side) {
             ctx.fillStyle = "#A52A2A";
@@ -126,6 +127,18 @@
 
             drawCleanBrickBuilding(0, buildingWidth, 'left');
             drawCleanBrickBuilding(canvas.width - buildingWidth, buildingWidth, 'right');
+
+            // Vchod do obchodu přímo v pravé červené budově dole nad asfaltem
+            let shopUnlocked = score >= 100;
+            ctx.fillStyle = "#111";
+            ctx.fillRect(canvas.width - buildingWidth + 40, canvas.height - 180, 80, 80);
+            ctx.strokeStyle = shopUnlocked ? "#27ae60" : "#555";
+            ctx.lineWidth = 3;
+            ctx.strokeRect(canvas.width - buildingWidth + 40, canvas.height - 180, 80, 80);
+
+            ctx.fillStyle = shopUnlocked ? "#27ae60" : "#777";
+            ctx.font = "bold 13px 'Courier New', Courier, monospace";
+            ctx.fillText("SHOP", canvas.width - buildingWidth + 60, canvas.height - 135);
 
             ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
             let zebraTopY = 195;
@@ -181,23 +194,9 @@
             // Asfalt (spodek)
             ctx.fillStyle = "#1a1a1a";
             ctx.fillRect(0, canvas.height - 100, canvas.width, 100);
-
-            // Vchod do Shopu vpravo dole (odemkne se po 100 lilcích)
-            let shopUnlocked = score >= 100;
-            ctx.fillStyle = shopUnlocked ? "#27ae60" : "#555";
-            ctx.fillRect(canvas.width - 150, canvas.height - 90, 100, 80);
-            ctx.fillStyle = "#fff";
-            ctx.font = "bold 14px 'Courier New', Courier, monospace";
-            ctx.fillText("SHOP", canvas.width - 122, canvas.height - 45);
-            if (shopUnlocked) {
-                ctx.strokeStyle = "#f1c40f";
-                ctx.lineWidth = 2;
-                ctx.strokeRect(canvas.width - 150, canvas.height - 90, 100, 80);
-            }
         }
 
         function drawBoxesOnRoad() {
-            // Vykreslení 3 boxů na horní stěně silnice (střed obrazovky nad silnicí)
             let boxWidth = 90;
             let boxHeight = 45;
             let startX = canvas.width / 2 - 150;
@@ -296,29 +295,25 @@
             }
         });
 
-        // Kliknutí myší na Shop vpravo dole
+        // Kliknutí myší v shopu pro nákup boxů
         window.addEventListener("click", (e) => {
+            if (!isShopOpen) return;
+
             let rect = canvas.getBoundingClientRect();
             let mouseX = e.clientX - rect.left;
             let mouseY = e.clientY - rect.top;
 
-            // Kontrola kliknutí na vchod do shopu
-            if (score >= 100 && mouseX >= canvas.width - 150 && mouseX <= canvas.width - 50 &&
-                mouseY >= canvas.height - 90 && mouseY <= canvas.height - 10) {
-                isShopOpen = true;
+            // Box 2 (0.5 USDC)
+            if (mouseX >= canvas.width / 2 - 75 && mouseX <= canvas.width / 2 + 75 && mouseY >= 220 && mouseY <= 360) {
+                unlockedBoxes.box2 = true; 
+                activeBox = 2; 
                 playSound('shop');
             }
-
-            // Pokud je shop otevřený, kliknutí na boxy pro nákup
-            if (isShopOpen) {
-                // Box 2 (0.5 USDC)
-                if (mouseX >= canvas.width / 2 - 160 && mouseX <= canvas.width / 2 - 30 && mouseY >= 280 && mouseY <= 360) {
-                    if (score >= 100) { unlockedBoxes.box2 = true; activeBox = 2; playSound('shop'); }
-                }
-                // Box 3 (1 USDC)
-                if (mouseX >= canvas.width / 2 + 30 && mouseX <= canvas.width / 2 + 160 && mouseY >= 280 && mouseY <= 360) {
-                    if (score >= 100) { unlockedBoxes.box3 = true; activeBox = 3; playSound('shop'); }
-                }
+            // Box 3 (1 USDC)
+            if (mouseX >= canvas.width / 2 + 120 && mouseX <= canvas.width / 2 + 270 && mouseY >= 220 && mouseY <= 360) {
+                unlockedBoxes.box3 = true; 
+                activeBox = 3; 
+                playSound('shop');
             }
         });
 
@@ -425,6 +420,14 @@
                             lilky.splice(i, 1); 
                             score++;
                             baseSpeed = 0.5 + (score * 0.01); 
+
+                            // Kontrola dosažení 100 lilků -> automatický vstup do obchodu
+                            if (score >= 100 && !shopTriggered) {
+                                shopTriggered = true;
+                                isShopOpen = true;
+                                playSound('shop');
+                            }
+
                             continue;
                         }
 
@@ -526,7 +529,7 @@
 
             ctx.fillStyle = "#ffffff";
             ctx.font = "16px 'Courier New', Courier, monospace";
-            ctx.fillText("Upgrade your capacity boxes using USDC", canvas.width / 2, 160);
+            ctx.fillText("Milestone reached! Upgrade your boxes using USDC", canvas.width / 2, 160);
 
             // Box 1 (Free)
             ctx.fillStyle = "#222";
@@ -612,6 +615,7 @@
             isGameOver = false;
             isPaused = false;
             isShopOpen = false;
+            shopTriggered = false;
             unlockedBoxes = { box1: true, box2: false, box3: false };
             activeBox = 1;
             gameLoop();
