@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>Egg & Lilek - Top Boxes Edition</title>
+    <title>Egg & Lilek - Play Solana (PSG1) Edition</title>
     <style>
         body { 
             margin: 0; 
@@ -26,6 +26,13 @@
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
+
+        // ==========================================
+        // WEB3 & SOLANA / PSG1 STAV
+        // ==========================================
+        let isConnected = false;
+        let walletAddress = "";
+        let playTokenBalance = 500; // Počáteční testovací zůstatek PLAY tokenů v peněžence
 
         // ==========================================
         // WEBS AUDIO API (GENEROVÁNÍ ZVUKŮ)
@@ -96,6 +103,10 @@
         let shopTriggered = false; 
         let unlockedBoxes = { box1: true, box2: false, box3: false };
         let activeBox = 1;
+        let hasCharityNFT = false; // Vlastnictví NFT památky
+
+        let txPending = false;
+        let txMessage = "";
 
         function drawCleanBrickBuilding(startX, width, side) {
             ctx.fillStyle = "#A52A2A";
@@ -128,7 +139,6 @@
             drawCleanBrickBuilding(0, buildingWidth, 'left');
             drawCleanBrickBuilding(canvas.width - buildingWidth, buildingWidth, 'right');
 
-            // Vchod do obchodu v pravé červené budově dole
             let shopUnlocked = score >= 100;
             ctx.fillStyle = "#111";
             ctx.fillRect(canvas.width - buildingWidth + 40, canvas.height - 180, 80, 80);
@@ -188,7 +198,6 @@
                 }
             });
 
-            // Asfalt (spodek)
             ctx.fillStyle = "#1a1a1a";
             ctx.fillRect(0, canvas.height - 100, canvas.width, 100);
         }
@@ -211,21 +220,17 @@
             boxesData.forEach((b, index) => {
                 let x = startX + (index * 115);
                 
-                // Tělo krabice
                 ctx.fillStyle = activeBox === b.id ? "#2980b9" : (b.unlocked ? "#8e44ad" : "#444");
                 ctx.fillRect(x, y + 10, boxWidth, boxHeight - 10);
                 
-                // Víko krabice
                 ctx.fillStyle = activeBox === b.id ? "#3498db" : (b.unlocked ? "#9b59b6" : "#555");
                 ctx.fillRect(x - 4, y, boxWidth + 8, 12);
 
-                // Ohraničení krabice
                 ctx.strokeStyle = b.unlocked ? "#f1c40f" : "#666";
                 ctx.lineWidth = 2;
                 ctx.strokeRect(x, y + 10, boxWidth, boxHeight - 10);
                 ctx.strokeRect(x - 4, y, boxWidth + 8, 12);
 
-                // Text v krabici
                 ctx.fillStyle = b.unlocked ? "#ffffff" : "#888";
                 ctx.font = "bold 12px 'Courier New', Courier, monospace";
                 ctx.fillText(b.name, x + 12, y + 32);
@@ -255,7 +260,7 @@
 
         window.addEventListener("keydown", (e) => {
             if (isShopOpen) {
-                if (e.key === "Escape" || e.key === "Enter") {
+                if (!txPending && (e.key === "Escape" || e.key === "Enter")) {
                     isShopOpen = false;
                 }
                 return;
@@ -303,27 +308,55 @@
             }
         });
 
-        // Kliknutí myší v shopu pro nákup boxů
         window.addEventListener("click", (e) => {
-            if (!isShopOpen) return;
-
             let rect = canvas.getBoundingClientRect();
             let mouseX = e.clientX - rect.left;
             let mouseY = e.clientY - rect.top;
 
-            // Box 2 (0.5 USDC)
-            if (mouseX >= canvas.width / 2 - 75 && mouseX <= canvas.width / 2 + 75 && mouseY >= 220 && mouseY <= 360) {
-                unlockedBoxes.box2 = true; 
-                activeBox = 2; 
+            if (!isConnected && mouseX >= canvas.width - 165 && mouseX <= canvas.width - 15 && mouseY >= 15 && mouseY <= 60) {
+                isConnected = true;
+                walletAddress = "PSG1...9xK4";
                 playSound('shop');
+                return;
             }
-            // Box 3 (1 USDC)
-            if (mouseX >= canvas.width / 2 + 120 && mouseX <= canvas.width / 2 + 270 && mouseY >= 220 && mouseY <= 360) {
-                unlockedBoxes.box3 = true; 
-                activeBox = 3; 
-                playSound('shop');
+
+            if (isShopOpen && !txPending) {
+                // Box 2 (50 PLAY)
+                if (mouseX >= canvas.width / 2 - 270 && mouseX <= canvas.width / 2 - 120 && mouseY >= 210 && mouseY <= 360) {
+                    if (!unlockedBoxes.box2) {
+                        buyBox('box2', 50, 2);
+                    }
+                }
+                // Box 3 (100 PLAY)
+                if (mouseX >= canvas.width / 2 - 75 && mouseX <= canvas.width / 2 + 75 && mouseY >= 210 && mouseY <= 360) {
+                    if (!unlockedBoxes.box3) {
+                        buyBox('box3', 100, 3);
+                    }
+                }
             }
         });
+
+        function buyBox(boxKey, price, boxId) {
+            if (playTokenBalance < price) {
+                txMessage = "Nedostatek PLAY tokenů v peněžence!";
+                setTimeout(() => { txMessage = ""; }, 2500);
+                return;
+            }
+
+            txPending = true;
+            txMessage = "Podepiš transakci na PSG1...";
+
+            setTimeout(() => {
+                playTokenBalance -= price;
+                unlockedBoxes[boxKey] = true;
+                activeBox = boxId;
+                hasCharityNFT = true; // Získá pamětní NFT vozíček
+                txPending = false;
+                txMessage = "Děkujeme! Podpořeno & NFT Vozíček odemčen ❤️";
+                playSound('shop');
+                setTimeout(() => { txMessage = ""; }, 3000);
+            }, 1500);
+        }
 
         function drawPlayer() {
             let targetPos = positions[currentPosIndex];
@@ -429,7 +462,6 @@
                             score++;
                             baseSpeed = 0.5 + (score * 0.01); 
 
-                            // Kontrola dosažení 100 lilků -> automatický vstup do obchodu
                             if (score >= 100 && !shopTriggered) {
                                 shopTriggered = true;
                                 isShopOpen = true;
@@ -512,74 +544,101 @@
             // Vykreslení krabic nahoře
             drawTopBoxes();
 
-            // Pravá budova: Životy
-            ctx.font = "bold 15px 'Courier New', Courier, monospace";
+            // Pravá budova: Připojení peněženky / Zůstatek PLAY tokenů
             ctx.fillStyle = "rgba(15, 15, 15, 0.85)";
             ctx.beginPath();
-            ctx.roundRect(canvas.width - 145, 15, 130, 45, 8);
+            ctx.roundRect(canvas.width - 175, 15, 160, 45, 8);
             ctx.fill();
-            ctx.strokeStyle = "#e74c3c";
+            ctx.strokeStyle = isConnected ? "#27ae60" : "#9b59b6";
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            ctx.fillStyle = "#e74c3c";
-            ctx.fillText("LIVES", canvas.width - 135, 33);
-            ctx.fillStyle = "#ffffff";
-            ctx.font = "bold 16px 'Courier New', Courier, monospace";
-            ctx.fillText("❤️ ".repeat(Math.max(0, lives)), canvas.width - 135, 52);
+            ctx.fillStyle = isConnected ? "#27ae60" : "#9b59b6";
+            ctx.font = "bold 13px 'Courier New', Courier, monospace";
+            if (!isConnected) {
+                ctx.fillText("CONNECT WALLET", canvas.width - 165, 42);
+            } else {
+                ctx.fillText("💰 " + playTokenBalance + " PLAY", canvas.width - 165, 33);
+                ctx.fillStyle = "#aaa";
+                ctx.font = "11px 'Courier New', Courier, monospace";
+                ctx.fillText(walletAddress, canvas.width - 165, 50);
+            }
         }
 
         function drawShopScreen() {
-            ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+            ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             ctx.fillStyle = "#f1c40f";
-            ctx.font = "bold 35px 'Courier New', Courier, monospace";
+            ctx.font = "bold 30px 'Courier New', Courier, monospace";
             ctx.textAlign = "center";
-            ctx.fillText("WEB3 EGGPLANT SHOP", canvas.width / 2, 120);
+            ctx.fillText("CHARITY PLAY SHOP", canvas.width / 2, 75);
 
             ctx.fillStyle = "#ffffff";
-            ctx.font = "16px 'Courier New', Courier, monospace";
-            ctx.fillText("Milestone reached! Upgrade your boxes using USDC", canvas.width / 2, 160);
+            ctx.font = "14px 'Courier New', Courier, monospace";
+            ctx.fillText("Podpoř rodinu & získej sběratelský NFT Vozíček ❤️", canvas.width / 2, 105);
+            ctx.fillText("Wallet Balance: " + playTokenBalance + " PLAY", canvas.width / 2, 130);
 
-            // Box 1 (Free)
+            // Box 1 (Free - 100 lilků)
             ctx.fillStyle = "#222";
-            ctx.fillRect(canvas.width / 2 - 270, 220, 150, 140);
+            ctx.fillRect(canvas.width / 2 - 270, 160, 160, 175);
             ctx.strokeStyle = "#3498db";
-            ctx.strokeRect(canvas.width / 2 - 270, 220, 150, 140);
+            ctx.strokeRect(canvas.width / 2 - 270, 160, 160, 175);
             ctx.fillStyle = "#3498db";
-            ctx.fillText("100 EGG BOX", canvas.width / 2 - 195, 250);
+            ctx.fillText("100 EGG BOX", canvas.width / 2 - 190, 190);
             ctx.fillStyle = "#fff";
-            ctx.fillText("Price: 0 USDC", canvas.width / 2 - 195, 290);
+            ctx.font = "13px 'Courier New', Courier, monospace";
+            ctx.fillText("Milestone: 100", canvas.width / 2 - 190, 220);
+            ctx.fillText("Price: 0 PLAY", canvas.width / 2 - 190, 245);
             ctx.fillStyle = "#27ae60";
-            ctx.fillText("UNLOCKED", canvas.width / 2 - 195, 330);
+            ctx.fillText("UNLOCKED", canvas.width / 2 - 190, 295);
 
-            // Box 2 (0.5 USDC)
+            // Box 2 (50 PLAY - 250 lilků)
             ctx.fillStyle = "#222";
-            ctx.fillRect(canvas.width / 2 - 75, 220, 150, 140);
+            ctx.fillRect(canvas.width / 2 - 80, 160, 160, 175);
             ctx.strokeStyle = unlockedBoxes.box2 ? "#27ae60" : "#f1c40f";
-            ctx.strokeRect(canvas.width / 2 - 75, 220, 150, 140);
+            ctx.strokeRect(canvas.width / 2 - 80, 160, 160, 175);
             ctx.fillStyle = "#f1c40f";
-            ctx.fillText("250 EGG BOX", canvas.width / 2, 250);
+            ctx.font = "14px 'Courier New', Courier, monospace";
+            ctx.fillText("250 EGG BOX", canvas.width / 2, 190);
             ctx.fillStyle = "#fff";
-            ctx.fillText("Price: 0.5 USDC", canvas.width / 2, 290);
+            ctx.font = "13px 'Courier New', Courier, monospace";
+            ctx.fillText("Milestone: 250", canvas.width / 2, 220);
+            ctx.fillText("Price: 50 PLAY", canvas.width / 2, 245);
             ctx.fillStyle = unlockedBoxes.box2 ? "#27ae60" : "#f1c40f";
-            ctx.fillText(unlockedBoxes.box2 ? "ACTIVE" : "BUY (Click)", canvas.width / 2, 330);
+            ctx.fillText(unlockedBoxes.box2 ? "ACTIVE" : "BUY (Click)", canvas.width / 2, 295);
 
-            // Box 3 (1 USDC)
+            // Box 3 (100 PLAY - 500 lilků + NFT Vozíček)
             ctx.fillStyle = "#222";
-            ctx.fillRect(canvas.width / 2 + 120, 220, 150, 140);
-            ctx.strokeStyle = unlockedBoxes.box3 ? "#27ae60" : "#f1c40f";
-            ctx.strokeRect(canvas.width / 2 + 120, 220, 150, 140);
-            ctx.fillStyle = "#f1c40f";
-            ctx.fillText("500 EGG BOX", canvas.width / 2 + 195, 250);
+            ctx.fillRect(canvas.width / 2 + 110, 160, 160, 175);
+            ctx.strokeStyle = unlockedBoxes.box3 ? "#27ae60" : "#e74c3c";
+            ctx.strokeRect(canvas.width / 2 + 110, 160, 160, 175);
+            ctx.fillStyle = "#e74c3c";
+            ctx.font = "14px 'Courier New', Courier, monospace";
+            ctx.fillText("500 EGG BOX", canvas.width / 2 + 190, 190);
             ctx.fillStyle = "#fff";
-            ctx.fillText("Price: 1 USDC", canvas.width / 2 + 195, 290);
-            ctx.fillStyle = unlockedBoxes.box3 ? "#27ae60" : "#f1c40f";
-            ctx.fillText(unlockedBoxes.box3 ? "ACTIVE" : "BUY (Click)", canvas.width / 2 + 195, 330);
+            ctx.font = "13px 'Courier New', Courier, monospace";
+            ctx.fillText("Price: 100 PLAY", canvas.width / 2 + 190, 220);
+            ctx.fillStyle = "#f1c40f";
+            ctx.fillText("+ NFT Vozíček", canvas.width / 2 + 190, 245);
+            ctx.fillStyle = unlockedBoxes.box3 ? "#27ae60" : "#e74c3c";
+            ctx.fillText(unlockedBoxes.box3 ? "ACTIVE" : "SUPPORT", canvas.width / 2 + 190, 295);
+
+            // Indikátor vlastnictví NFT
+            if (hasCharityNFT) {
+                ctx.fillStyle = "#27ae60";
+                ctx.font = "bold 15px 'Courier New', Courier, monospace";
+                ctx.fillText("🌟 Vlastníte pamětní NFT Vozíček 🌟", canvas.width / 2, 360);
+            }
+
+            if (txMessage !== "") {
+                ctx.fillStyle = "#e67e22";
+                ctx.font = "bold 16px 'Courier New', Courier, monospace";
+                ctx.fillText(txMessage, canvas.width / 2, 400);
+            }
 
             ctx.fillStyle = "#aaa";
-            ctx.font = "14px 'Courier New', Courier, monospace";
+            ctx.font = "13px 'Courier New', Courier, monospace";
             ctx.fillText("Press ESC or ENTER to return to game", canvas.width / 2, 450);
             ctx.textAlign = "start";
         }
