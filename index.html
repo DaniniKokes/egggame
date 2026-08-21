@@ -87,7 +87,6 @@
             }
         }
 
-        // Veselá retro smyčka (míchanice zvuků) hrající od úvodní obrazovky
         function startBackgroundMusic() {
             if (backgroundMusicInterval) return;
             const notes = [220, 277, 330, 440, 554, 330, 277];
@@ -331,9 +330,6 @@
             if (e.code === "Space") {
                 isPaused = !isPaused;
                 playSound('shop');
-                if (!isPaused) {
-                    gameLoop();
-                }
                 return;
             }
 
@@ -754,13 +750,13 @@
             lives = 3;
             baseSpeed = 0.5;
             lilky = [];
+            spawnCounter = 0;
             isGameOver = false;
             isPaused = false;
             isShopOpen = false;
             shopTriggered = false;
             unlockedBoxes = { box1: true, box2: false, box3: false };
             activeBox = 1;
-            gameLoop();
         }
 
         // ==========================================
@@ -777,11 +773,10 @@
                 return;
             }
 
-            updateAndDrawLilky();
-            drawPlayer();      
-            drawUI();
-
             if (isGameOver) {
+                updateAndDrawLilky();
+                drawPlayer();
+                drawUI();
                 drawGameOver();
                 requestAnimationFrame(gameLoop);
                 return; 
@@ -794,10 +789,17 @@
             }
 
             if (isPaused) {
+                updateAndDrawLilky(); // Vykreslí aktuální scénu pod pauzou, ale neposouvá čas
+                drawPlayer();
+                drawUI();
                 drawPauseScreen();
                 requestAnimationFrame(gameLoop);
                 return; 
             }
+
+            updateAndDrawLilky();
+            drawPlayer();      
+            drawUI();
 
             requestAnimationFrame(gameLoop);
         }
