@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>Egg & Lilek - Pause Edition</title>
+    <title>Egg & Lilek - Balanced Speed & Fixed Game Over</title>
     <style>
         body { 
             margin: 0; 
@@ -217,16 +217,15 @@
         let score = 0;
         let lives = 3;
         let isGameOver = false;
-        let isPaused = false; // Stav pauzy
+        let isPaused = false;
 
         window.addEventListener("keydown", (e) => {
-            // Přepínání pauzy pomocí Mezerníku (Space)
             if (e.code === "Space") {
                 if (!isGameOver) {
                     isPaused = !isPaused;
                     playSound('pause');
                     if (!isPaused) {
-                        gameLoop(); // Pokračování smyčky po odpauzování
+                        gameLoop();
                     }
                 }
                 return;
@@ -237,7 +236,6 @@
                 return;
             }
 
-            // Pokud je pauza zapnutá, ignorujeme šipky pro pohyb panáčka
             if (isPaused) return;
 
             let oldIndex = currentPosIndex;
@@ -300,7 +298,7 @@
 
         let lilky = [];
         let spawnCounter = 0;
-        let baseSpeed = 0.6; 
+        let baseSpeed = 0.5; // Ještě pozvolnější start
 
         function spawnLilek() {
             let rIdx = Math.floor(Math.random() * 4);
@@ -323,10 +321,10 @@
         }
 
         function updateAndDrawLilky() {
-            // Pokud je pauza, lilky se nehýbou (pouze se vykreslí tam, kde jsou)
-            if (!isPaused) {
+            if (!isPaused && !isGameOver) {
                 spawnCounter++;
-                let currentSpawnInterval = Math.max(70, 160 - (score * 3));
+                // Pozvolnější zkracování intervalu spawnování
+                let currentSpawnInterval = Math.max(90, 180 - (score * 2));
 
                 if (spawnCounter > currentSpawnInterval) { 
                     spawnLilek();
@@ -338,7 +336,7 @@
                 let l = lilky[i];
                 let r = rooms[l.roomIndex];
 
-                if (!isPaused) {
+                if (!isPaused && !isGameOver) {
                     if (l.state === 'room') {
                         let windowX = l.isLeft ? buildingWidth : (canvas.width - buildingWidth);
                         l.x += l.isLeft ? l.speed : -l.speed;
@@ -367,12 +365,13 @@
                             playSound('catch'); 
                             lilky.splice(i, 1); 
                             score++;
-                            baseSpeed = 0.6 + (score * 0.03); 
+                            // Mnohem pomalejší nárůst rychlosti (0.01 místo 0.03)
+                            baseSpeed = 0.5 + (score * 0.01); 
                             continue;
                         }
 
                         let rampEndX = l.isLeft ? (buildingWidth + 70) : (canvas.width - buildingWidth - 70);
-                        if ((l.isLeft && l.x >= rampEndX) || (!l.isLeft && l.x <= rampEndX)) {
+                        if ((l.isLeft && l.x >= rampEndX) || (!l.isLeft && l.x < rampEndX)) {
                             l.state = 'falling';
                         }
                     } 
@@ -398,7 +397,6 @@
                     }
                 }
 
-                // Vykreslení lilku
                 ctx.save();
                 ctx.translate(l.x, l.y - 10);
                 ctx.rotate(l.angle);
@@ -496,7 +494,7 @@
         function restartGame() {
             score = 0;
             lives = 3;
-            baseSpeed = 0.6;
+            baseSpeed = 0.5;
             lilky = [];
             isGameOver = false;
             isPaused = false;
@@ -507,8 +505,6 @@
         // HLAVNÍ HERNÍ SMYČKA
         // ==========================================
         function gameLoop() {
-            if (isGameOver) return;
-
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             drawEnvironment(); 
@@ -516,9 +512,14 @@
             drawPlayer();      
             drawUI();
 
+            if (isGameOver) {
+                drawGameOver();
+                return; // Zastaví smyčku a vykreslí Game Over přes obrazovku
+            }
+
             if (isPaused) {
                 drawPauseScreen();
-                return; // Zastaví requestAnimationFrame dokud se neodpauzuje
+                return; 
             }
 
             requestAnimationFrame(gameLoop);
