@@ -32,12 +32,13 @@
         // ==========================================
         let isConnected = false;
         let walletAddress = "";
-        let playTokenBalance = 500; // Initial test PLAY token balance
+        let playTokenBalance = 500; 
 
         // ==========================================
-        // WEB AUDIO API (SOUND EFFECTS)
+        // WEB AUDIO API (SOUND & INTRO MUSIC)
         // ==========================================
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let backgroundMusicInterval = null;
 
         function playSound(type) {
             if (audioCtx.state === 'suspended') {
@@ -86,9 +87,36 @@
             }
         }
 
+        // Veselá retro smyčka (míchanice zvuků) hrající od úvodní obrazovky
+        function startBackgroundMusic() {
+            if (backgroundMusicInterval) return;
+            const notes = [220, 277, 330, 440, 554, 330, 277];
+            let index = 0;
+            
+            backgroundMusicInterval = setInterval(() => {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                let now = audioCtx.currentTime;
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(notes[index], now);
+                gain.gain.setValueAtTime(0.08, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                
+                osc.start(now);
+                osc.stop(now + 0.15);
+
+                index = (index + 1) % notes.length;
+            }, 200);
+        }
+
         // ==========================================
-        // ENHANCED BUILDINGS & ENVIRONMENT
+        // GAME STATES & ENVIRONMENT
         // ==========================================
+        let gameStarted = false;
         const buildingWidth = 220;
 
         const rooms = [
@@ -276,6 +304,23 @@
         let isPaused = false;
 
         window.addEventListener("keydown", (e) => {
+            startBackgroundMusic();
+
+            if (!gameStarted) {
+                if (e.key === "Enter" || e.code === "Space") {
+                    gameStarted = true;
+                    playSound('shop');
+                }
+                return;
+            }
+
+            if (isGameOver) {
+                if (e.key === "Enter" || e.code === "Space") {
+                    restartGame();
+                }
+                return;
+            }
+
             if (isShopOpen) {
                 if (!txPending && (e.key === "Escape" || e.key === "Enter")) {
                     isShopOpen = false;
@@ -284,18 +329,11 @@
             }
 
             if (e.code === "Space") {
-                if (!isGameOver) {
-                    isPaused = !isPaused;
-                    playSound('shop');
-                    if (!isPaused) {
-                        gameLoop();
-                    }
+                isPaused = !isPaused;
+                playSound('shop');
+                if (!isPaused) {
+                    gameLoop();
                 }
-                return;
-            }
-
-            if (isGameOver) {
-                if (e.key === "Enter") restartGame();
                 return;
             }
 
@@ -326,9 +364,16 @@
         });
 
         window.addEventListener("click", (e) => {
+            startBackgroundMusic();
             let rect = canvas.getBoundingClientRect();
             let mouseX = e.clientX - rect.left;
             let mouseY = e.clientY - rect.top;
+
+            if (!gameStarted) {
+                gameStarted = true;
+                playSound('shop');
+                return;
+            }
 
             if (!isConnected && mouseX >= canvas.width - 165 && mouseX <= canvas.width - 15 && mouseY >= 15 && mouseY <= 60) {
                 isConnected = true;
@@ -338,17 +383,11 @@
             }
 
             if (isShopOpen && !txPending) {
-                // Box 2 (50 PLAY)
                 if (mouseX >= canvas.width / 2 - 270 && mouseX <= canvas.width / 2 - 120 && mouseY >= 160 && mouseY <= 335) {
-                    if (!unlockedBoxes.box2) {
-                        buyBox('box2', 50, 2);
-                    }
+                    if (!unlockedBoxes.box2) buyBox('box2', 50, 2);
                 }
-                // Box 3 (100 PLAY + Family Support)
                 if (mouseX >= canvas.width / 2 + 110 && mouseX <= canvas.width / 2 + 270 && mouseY >= 160 && mouseY <= 335) {
-                    if (!unlockedBoxes.box3) {
-                        buyBox('box3', 100, 3);
-                    }
+                    if (!unlockedBoxes.box3) buyBox('box3', 100, 3);
                 }
             }
         });
@@ -541,10 +580,32 @@
         // ==========================================
         // UI & SCREENS
         // ==========================================
+        function drawStartScreen() {
+            ctx.fillStyle = "rgba(10, 10, 15, 0.95)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = "#f1c40f";
+            ctx.font = "bold 40px 'Courier New', Courier, monospace";
+            ctx.textAlign = "center";
+            ctx.fillText("EGG & EGGPLANT", canvas.width / 2, canvas.height / 2 - 50);
+
+            ctx.fillStyle = "#3498db";
+            ctx.font = "bold 20px 'Courier New', Courier, monospace";
+            ctx.fillText("PSG1 DELUXE EDITION", canvas.width / 2, canvas.height / 2 - 10);
+
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "18px 'Courier New', Courier, monospace";
+            let alpha = Math.abs(Math.sin(Date.now() / 300));
+            ctx.globalAlpha = alpha;
+            ctx.fillText("PRESS START (ENTER / SPACE)", canvas.width / 2, canvas.height / 2 + 50);
+            ctx.globalAlpha = 1.0;
+
+            ctx.textAlign = "start";
+        }
+
         function drawUI() {
             ctx.font = "bold 15px 'Courier New', Courier, monospace";
 
-            // Score panel
             ctx.fillStyle = "rgba(20, 20, 30, 0.9)";
             ctx.beginPath();
             ctx.roundRect(15, 15, 130, 45, 8);
@@ -561,7 +622,6 @@
 
             drawTopBoxes();
 
-            // Wallet panel
             ctx.fillStyle = "rgba(20, 20, 30, 0.9)";
             ctx.beginPath();
             ctx.roundRect(canvas.width - 175, 15, 160, 45, 8);
@@ -596,7 +656,6 @@
             ctx.fillText("Unlock upgraded baskets & support family care ❤️", canvas.width / 2, 105);
             ctx.fillText("Wallet Balance: " + playTokenBalance + " PLAY", canvas.width / 2, 130);
 
-            // Box 1 (Free)
             ctx.fillStyle = "#1c1c28";
             ctx.fillRect(canvas.width / 2 - 270, 160, 160, 175);
             ctx.strokeStyle = "#3498db";
@@ -610,7 +669,6 @@
             ctx.fillStyle = "#2ecc71";
             ctx.fillText("ACTIVE", canvas.width / 2 - 190, 295);
 
-            // Box 2 (50 PLAY)
             ctx.fillStyle = "#1c1c28";
             ctx.fillRect(canvas.width / 2 - 80, 160, 160, 175);
             ctx.strokeStyle = unlockedBoxes.box2 ? "#2ecc71" : "#f1c40f";
@@ -624,7 +682,6 @@
             ctx.fillStyle = unlockedBoxes.box2 ? "#2ecc71" : "#f1c40f";
             ctx.fillText(unlockedBoxes.box2 ? "ACTIVE" : "BUY NOW", canvas.width / 2, 295);
 
-            // Box 3 (100 PLAY - Family Support)
             ctx.fillStyle = "#1c1c28";
             ctx.fillRect(canvas.width / 2 + 110, 160, 160, 175);
             ctx.strokeStyle = unlockedBoxes.box3 ? "#2ecc71" : "#e74c3c";
@@ -713,12 +770,20 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             drawEnvironment(); 
+            
+            if (!gameStarted) {
+                drawStartScreen();
+                requestAnimationFrame(gameLoop);
+                return;
+            }
+
             updateAndDrawLilky();
             drawPlayer();      
             drawUI();
 
             if (isGameOver) {
                 drawGameOver();
+                requestAnimationFrame(gameLoop);
                 return; 
             }
 
@@ -730,6 +795,7 @@
 
             if (isPaused) {
                 drawPauseScreen();
+                requestAnimationFrame(gameLoop);
                 return; 
             }
 
