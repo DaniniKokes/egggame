@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>Egg & Lilek - Kompletní hra</title>
+    <title>Egg & Lilek - S životy a zrychlováním</title>
     <style>
         body { 
             margin: 0; 
@@ -60,22 +60,17 @@
         }
 
         function drawEnvironment() {
-            // 1. Pozadí ulice (tmavě šedý asfalt)
             ctx.fillStyle = "#2b2b2b";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // 2. Chodníky podél budov
             ctx.fillStyle = "#7c7c7c";
             ctx.fillRect(buildingWidth, 0, 30, canvas.height - 100); 
             ctx.fillRect(canvas.width - buildingWidth - 30, 0, 30, canvas.height - 100); 
 
-            // 3. Budovy
             drawCleanBrickBuilding(0, buildingWidth, 'left');
             drawCleanBrickBuilding(canvas.width - buildingWidth, buildingWidth, 'right');
 
-            // 4. Přechody pro chodce (zebry)
             ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
-            
             let zebraTopY = 195;
             for (let x = buildingWidth + 30; x < canvas.width - buildingWidth - 30; x += 25) {
                 ctx.fillRect(x, zebraTopY, 14, 35);
@@ -86,7 +81,6 @@
                 ctx.fillRect(x, zebraBottomY, 14, 35);
             }
 
-            // 5. Žlutá přerušovaná čára uprostřed ulice
             ctx.strokeStyle = "#f1c40f";
             ctx.lineWidth = 4;
             ctx.setLineDash([20, 15]);
@@ -96,12 +90,10 @@
             ctx.stroke();
             ctx.setLineDash([]); 
 
-            // 6. Místnosti a rampy
             rooms.forEach(r => {
                 if (r.side === 'left') {
                     ctx.fillStyle = "#d49a4f";
                     ctx.fillRect(0, r.y - 15, buildingWidth - 20, 85);
-                    
                     ctx.fillStyle = themeColor;
                     ctx.fillRect(buildingWidth - 20, r.y + 20, 20, 50);
 
@@ -114,7 +106,6 @@
                 } else {
                     ctx.fillStyle = "#d49a4f";
                     ctx.fillRect(canvas.width - buildingWidth + 20, r.y - 15, buildingWidth - 20, 85);
-
                     ctx.fillStyle = themeColor;
                     ctx.fillRect(canvas.width - buildingWidth, r.y + 20, 20, 50);
 
@@ -127,9 +118,7 @@
                 }
             });
 
-            // 7. Zmenšené lampy (mezi rampami a dole)
             const lampYPositions = [240, 480]; 
-
             lampYPositions.forEach(lampY => {
                 ctx.fillStyle = "rgba(241, 196, 15, 0.3)";
                 ctx.beginPath();
@@ -152,13 +141,12 @@
                 ctx.fill();
             });
 
-            // Spodní silnice/okraj
             ctx.fillStyle = "#1a1a1a";
             ctx.fillRect(0, canvas.height - 100, canvas.width, 100);
         }
 
         // ==========================================
-        // SEKCE 2: PANÁČEK, POZICE A OTÁČENÍ
+        // SEKCE 2: PANÁČEK A OVLÁDÁNÍ
         // ==========================================
         const playerImg = new Image();
         playerImg.src = "player.png";
@@ -173,9 +161,16 @@
         let currentPosIndex = 1;
         let animTimer = 0;
         let isMovingEffect = false;
-        let score = 0; // Počítadlo skóre
+        let score = 0;
+        let lives = 3;         // Počet životů
+        let isGameOver = false;
 
         window.addEventListener("keydown", (e) => {
+            if (isGameOver) {
+                if (e.key === "Enter") restartGame();
+                return;
+            }
+
             let oldIndex = currentPosIndex;
             if (e.key === "ArrowUp") {
                 if (currentPosIndex === 1) currentPosIndex = 0;
@@ -229,13 +224,14 @@
         }
 
         // ==========================================
-        // SEKCE 3: LILKY (KUTÁLENÍ S ROTACÍ)
+        // SEKCE 3: LILKY, RYCHLOST A PADÁNÍ NA ZEM
         // ==========================================
         const lilekImg = new Image();
         lilekImg.src = "lilek.png"; 
 
         let lilky = [];
         let spawnCounter = 0;
+        let baseSpeed = 0.7; // Začínáme pomaleji
 
         function spawnLilek() {
             let rIdx = Math.floor(Math.random() * 4);
@@ -250,15 +246,18 @@
                 x: startX,
                 y: startY,
                 isLeft: isLeft,
-                speed: 1.1,
-                state: 'room',
+                speed: baseSpeed,
+                state: 'room', // 'room', 'ramp', 'falling', 'ground'
                 angle: 0 
             });
         }
 
         function updateAndDrawLilky() {
             spawnCounter++;
-            if (spawnCounter > 150) { 
+            // Interval spawnování se s rostoucím skóre zkracuje (chodí častěji)
+            let currentSpawnInterval = Math.max(70, 160 - (score * 4));
+
+            if (spawnCounter > currentSpawnInterval) { 
                 spawnLilek();
                 spawnCounter = 0;
             }
@@ -267,43 +266,66 @@
                 let l = lilky[i];
                 let r = rooms[l.roomIndex];
 
+                // 1. Pohyb v místnosti
                 if (l.state === 'room') {
                     let windowX = l.isLeft ? buildingWidth : (canvas.width - buildingWidth);
+                    l.x += l.isLeft ? l.speed : -l.speed;
+                    l.y = r.y + 70;
+                    l.angle += l.isLeft ? 0.04 : -0.04;
 
-                    if (l.isLeft) {
-                        l.x += l.speed;
-                        l.y = r.y + 70;
-                        l.angle += 0.05;
-                        if (l.x >= windowX) {
-                            l.state = 'ramp';
-                        }
-                    } else {
-                        l.x -= l.speed;
-                        l.y = r.y + 70;
-                        l.angle -= 0.05;
-                        if (l.x <= windowX) {
-                            l.state = 'ramp';
-                        }
+                    if ((l.isLeft && l.x >= windowX) || (!l.isLeft && l.x <= windowX)) {
+                        l.state = 'ramp';
                     }
                 } 
+                // 2. Pohyb po rampě dolů do ulice
                 else if (l.state === 'ramp') {
-                    if (l.isLeft) {
-                        l.x += l.speed;
-                        let rampStartX = buildingWidth;
-                        let rampStartY = r.y + 70;
-                        let progress = (l.x - rampStartX) / 70; 
-                        l.y = rampStartY + (progress * 60) - 6; 
-                        l.angle += 0.08;
-                    } else {
-                        l.x -= l.speed;
-                        let rampStartX = canvas.width - buildingWidth;
-                        let rampStartY = r.y + 70;
-                        let progress = (rampStartX - l.x) / 70;
-                        l.y = rampStartY + (progress * 60) - 6;
-                        l.angle -= 0.08;
+                    let rampStartX = l.isLeft ? buildingWidth : (canvas.width - buildingWidth);
+                    let rampStartY = r.y + 70;
+
+                    l.x += l.isLeft ? l.speed : -l.speed;
+                    let progress = l.isLeft ? (l.x - rampStartX) / 70 : (rampStartX - l.x) / 70;
+                    l.y = rampStartY + (progress * 60) - 6;
+                    l.angle += l.isLeft ? 0.06 : -0.06;
+
+                    // Kontrola, zda lilek dorazil k panáčkovi (sběrná zóna)
+                    let targetPos = positions[l.roomIndex];
+                    let catchAreaX = targetPos.x + 15;
+                    let catchAreaY = targetPos.y + 20;
+                    let distance = Math.hypot(l.x - catchAreaX, l.y - catchAreaY);
+
+                    if (distance < 30) {
+                        lilky.splice(i, 1); 
+                        score++;
+                        // Zvýšení celkové rychlosti hry s každým bodem
+                        baseSpeed = 0.7 + (score * 0.04);
+                        continue;
+                    }
+
+                    // Pokud panáček lilek minul, rampa končí a lilek padá dál do silnice
+                    let endOfRampX = l.isLeft ? buildingWidth + 75 : canvas.width - buildingWidth - 75;
+                    if ((l.isLeft && l.x > endOfRampX) || (!l.isLeft && l.x < endOfRampX)) {
+                        l.state = 'falling';
+                    }
+                } 
+                // 3. Volný pád dál do ulice na zem
+                else if (l.state === 'falling') {
+                    l.y += 3.5; // Rychlý pád dolů
+                    l.x += l.isLeft ? 0.5 : -0.5;
+                    l.angle += 0.1;
+
+                    // Dopad na zem (asfalt dole u chodníku / podlahy)
+                    let groundY = canvas.height - 110;
+                    if (l.y >= groundY) {
+                        l.y = groundY;
+                        l.state = 'ground';
+                        lives--; // Ztráta života!
+                        if (lives <= 0) {
+                            isGameOver = true;
+                        }
                     }
                 }
 
+                // Vykreslení lilku
                 ctx.save();
                 ctx.translate(l.x, l.y - 10);
                 ctx.rotate(l.angle);
@@ -318,38 +340,57 @@
                 }
                 ctx.restore();
 
-                // Kontrola chycení panáčkem
-                let targetPos = positions[l.roomIndex];
-                let catchAreaX = targetPos.x + 15;
-                let catchAreaY = targetPos.y + 20;
-
-                let distance = Math.hypot(l.x - catchAreaX, l.y - catchAreaY);
-                if (distance < 30) {
-                    lilky.splice(i, 1); 
-                    score++; // Přičtení bodu za chycený lilek
-                } 
-                else if ((l.isLeft && l.x > buildingWidth + 75) || (!l.isLeft && l.x < canvas.width - buildingWidth - 75)) {
-                    lilky.splice(i, 1); 
+                // Odstranění lilků ležících na zemi po chvíli nebo mimo obraz
+                if (l.state === 'ground') {
+                    // Můžeme je nechat chvíli ležet nebo je hned odstranit po pár snímcích, tady je po chvíli smažeme
+                    if (Math.random() < 0.02) lilky.splice(i, 1);
                 }
             }
         }
 
         // ==========================================
-        // SKÓRE TABULE
+        // UI: SKÓRE A ŽIVOTY
         // ==========================================
-        function drawScore() {
+        function drawUI() {
+            // Skóre tabule (uprostřed)
             ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-            ctx.fillRect(canvas.width / 2 - 90, 15, 180, 40);
-            
+            ctx.fillRect(canvas.width / 2 - 110, 15, 220, 40);
             ctx.strokeStyle = "#f1c40f";
             ctx.lineWidth = 2;
-            ctx.strokeRect(canvas.width / 2 - 90, 15, 180, 40);
+            ctx.strokeRect(canvas.width / 2 - 110, 15, 220, 40);
 
             ctx.fillStyle = "#ffffff";
-            ctx.font = "bold 20px 'Courier New', Courier, monospace";
+            ctx.font = "bold 18px 'Courier New', Courier, monospace";
             ctx.textAlign = "center";
-            ctx.fillText("Lilky: " + score, canvas.width / 2, 42);
+            ctx.fillText("Lilky: " + score + " | Životy: " + lives, canvas.width / 2, 42);
             ctx.textAlign = "start";
+        }
+
+        function drawGameOver() {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = "#ff4d4d";
+            ctx.font = "bold 45px 'Courier New', Courier, monospace";
+            ctx.textAlign = "center";
+            ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 30);
+
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "22px 'Courier New', Courier, monospace";
+            ctx.fillText("Uloveno lilků: " + score, canvas.width / 2, canvas.height / 2 + 20);
+            
+            ctx.fillStyle = "#f1c40f";
+            ctx.font = "18px 'Courier New', Courier, monospace";
+            ctx.fillText("Stisknutím ENTER hru restartuješ", canvas.width / 2, canvas.height / 2 + 70);
+            ctx.textAlign = "start";
+        }
+
+        function restartGame() {
+            score = 0;
+            lives = 3;
+            baseSpeed = 0.7;
+            lilky = [];
+            isGameOver = false;
         }
 
         // ==========================================
@@ -359,13 +400,18 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             drawEnvironment(); 
-            drawScore();
             updateAndDrawLilky();
             drawPlayer();      
+            drawUI();
 
-            requestAnimationFrame(gameLoop);
+            if (isGameOver) {
+                drawGameOver();
+            } else {
+                requestAnimationFrame(gameLoop);
+            }
         }
 
+        // Spuštění po načtení obrázku
         playerImg.onload = () => {
             gameLoop();
         };
