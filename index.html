@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>Egg & Lilek - Audio Edition</title>
+    <title>Egg & Lilek - Pause Edition</title>
     <style>
         body { 
             margin: 0; 
@@ -44,7 +44,6 @@
             let now = audioCtx.currentTime;
 
             if (type === 'catch') {
-                // Rychlé veselé cinknutí nahoru
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(400, now);
                 osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
@@ -53,7 +52,6 @@
                 osc.start(now);
                 osc.stop(now + 0.1);
             } else if (type === 'drop') {
-                // Hlubší tón při pádu na zem
                 osc.type = 'triangle';
                 osc.frequency.setValueAtTime(150, now);
                 osc.frequency.exponentialRampToValueAtTime(50, now + 0.2);
@@ -62,7 +60,6 @@
                 osc.start(now);
                 osc.stop(now + 0.2);
             } else if (type === 'gameover') {
-                // Smutná sestupná melodička
                 osc.type = 'sawtooth';
                 osc.frequency.setValueAtTime(300, now);
                 osc.frequency.setValueAtTime(200, now + 0.15);
@@ -71,6 +68,14 @@
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
                 osc.start(now);
                 osc.stop(now + 0.5);
+            } else if (type === 'pause') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(500, now);
+                osc.frequency.setValueAtTime(700, now + 0.08);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
             }
         }
 
@@ -212,12 +217,28 @@
         let score = 0;
         let lives = 3;
         let isGameOver = false;
+        let isPaused = false; // Stav pauzy
 
         window.addEventListener("keydown", (e) => {
+            // Přepínání pauzy pomocí Mezerníku (Space)
+            if (e.code === "Space") {
+                if (!isGameOver) {
+                    isPaused = !isPaused;
+                    playSound('pause');
+                    if (!isPaused) {
+                        gameLoop(); // Pokračování smyčky po odpauzování
+                    }
+                }
+                return;
+            }
+
             if (isGameOver) {
                 if (e.key === "Enter") restartGame();
                 return;
             }
+
+            // Pokud je pauza zapnutá, ignorujeme šipky pro pohyb panáčka
+            if (isPaused) return;
 
             let oldIndex = currentPosIndex;
             if (e.key === "ArrowUp") {
@@ -302,76 +323,82 @@
         }
 
         function updateAndDrawLilky() {
-            spawnCounter++;
-            let currentSpawnInterval = Math.max(70, 160 - (score * 3));
+            // Pokud je pauza, lilky se nehýbou (pouze se vykreslí tam, kde jsou)
+            if (!isPaused) {
+                spawnCounter++;
+                let currentSpawnInterval = Math.max(70, 160 - (score * 3));
 
-            if (spawnCounter > currentSpawnInterval) { 
-                spawnLilek();
-                spawnCounter = 0;
+                if (spawnCounter > currentSpawnInterval) { 
+                    spawnLilek();
+                    spawnCounter = 0;
+                }
             }
 
             for (let i = lilky.length - 1; i >= 0; i--) {
                 let l = lilky[i];
                 let r = rooms[l.roomIndex];
 
-                if (l.state === 'room') {
-                    let windowX = l.isLeft ? buildingWidth : (canvas.width - buildingWidth);
-                    l.x += l.isLeft ? l.speed : -l.speed;
-                    l.y = r.y + 70;
-                    l.angle += l.isLeft ? 0.04 : -0.04;
+                if (!isPaused) {
+                    if (l.state === 'room') {
+                        let windowX = l.isLeft ? buildingWidth : (canvas.width - buildingWidth);
+                        l.x += l.isLeft ? l.speed : -l.speed;
+                        l.y = r.y + 70;
+                        l.angle += l.isLeft ? 0.04 : -0.04;
 
-                    if ((l.isLeft && l.x >= windowX) || (!l.isLeft && l.x <= windowX)) {
-                        l.state = 'ramp';
-                    }
-                } 
-                else if (l.state === 'ramp') {
-                    let rampStartX = l.isLeft ? buildingWidth : (canvas.width - buildingWidth);
-                    let rampStartY = r.y + 70;
+                        if ((l.isLeft && l.x >= windowX) || (!l.isLeft && l.x <= windowX)) {
+                            l.state = 'ramp';
+                        }
+                    } 
+                    else if (l.state === 'ramp') {
+                        let rampStartX = l.isLeft ? buildingWidth : (canvas.width - buildingWidth);
+                        let rampStartY = r.y + 70;
 
-                    l.x += l.isLeft ? l.speed : -l.speed;
-                    let progress = l.isLeft ? (l.x - rampStartX) / 70 : (rampStartX - l.x) / 70;
-                    l.y = rampStartY + (progress * 60) - 6;
-                    l.angle += l.isLeft ? 0.06 : -0.06;
+                        l.x += l.isLeft ? l.speed : -l.speed;
+                        let progress = l.isLeft ? (l.x - rampStartX) / 70 : (rampStartX - l.x) / 70;
+                        l.y = rampStartY + (progress * 60) - 6;
+                        l.angle += l.isLeft ? 0.06 : -0.06;
 
-                    let targetPos = positions[l.roomIndex];
-                    let catchAreaX = targetPos.x + 15;
-                    let catchAreaY = targetPos.y + 20;
-                    let distance = Math.hypot(l.x - catchAreaX, l.y - catchAreaY);
+                        let targetPos = positions[l.roomIndex];
+                        let catchAreaX = targetPos.x + 15;
+                        let catchAreaY = targetPos.y + 20;
+                        let distance = Math.hypot(l.x - catchAreaX, l.y - catchAreaY);
 
-                    if (distance < 32 && currentPosIndex === l.roomIndex) {
-                        playSound('catch'); // Přehrání zvuku chycení
-                        lilky.splice(i, 1); 
-                        score++;
-                        baseSpeed = 0.6 + (score * 0.03); 
-                        continue;
-                    }
+                        if (distance < 32 && currentPosIndex === l.roomIndex) {
+                            playSound('catch'); 
+                            lilky.splice(i, 1); 
+                            score++;
+                            baseSpeed = 0.6 + (score * 0.03); 
+                            continue;
+                        }
 
-                    let rampEndX = l.isLeft ? (buildingWidth + 70) : (canvas.width - buildingWidth - 70);
-                    if ((l.isLeft && l.x >= rampEndX) || (!l.isLeft && l.x <= rampEndX)) {
-                        l.state = 'falling';
-                    }
-                } 
-                else if (l.state === 'falling') {
-                    l.y += 4; 
-                    l.angle += 0.1;
+                        let rampEndX = l.isLeft ? (buildingWidth + 70) : (canvas.width - buildingWidth - 70);
+                        if ((l.isLeft && l.x >= rampEndX) || (!l.isLeft && l.x <= rampEndX)) {
+                            l.state = 'falling';
+                        }
+                    } 
+                    else if (l.state === 'falling') {
+                        l.y += 4; 
+                        l.angle += 0.1;
 
-                    let groundY = canvas.height - 120;
-                    if (l.y >= groundY) {
-                        l.y = groundY;
-                        l.state = 'ground';
-                        
-                        if (!l.counted) {
-                            playSound('drop'); // Přehrání zvuku dopadu na zem
-                            lives--;
-                            l.counted = true;
-                            if (lives <= 0) {
-                                playSound('gameover');
-                                isGameOver = true;
+                        let groundY = canvas.height - 120;
+                        if (l.y >= groundY) {
+                            l.y = groundY;
+                            l.state = 'ground';
+                            
+                            if (!l.counted) {
+                                playSound('drop'); 
+                                lives--;
+                                l.counted = true;
+                                if (lives <= 0) {
+                                    playSound('gameover');
+                                    isGameOver = true;
+                                }
                             }
                         }
                     }
                 }
 
+                // Vykreslení lilku
                 ctx.save();
                 ctx.translate(l.x, l.y - 10);
                 ctx.rotate(l.angle);
@@ -386,7 +413,7 @@
                 }
                 ctx.restore();
 
-                if (l.state === 'ground') {
+                if (!isPaused && l.state === 'ground') {
                     if (Math.random() < 0.03) {
                         lilky.splice(i, 1);
                     }
@@ -395,7 +422,7 @@
         }
 
         // ==========================================
-        // UI A GAME OVER
+        // UI, PAUSE A GAME OVER
         // ==========================================
         function drawUI() {
             ctx.font = "bold 15px 'Courier New', Courier, monospace";
@@ -432,6 +459,21 @@
             ctx.fillText("❤️ ".repeat(Math.max(0, lives)), canvas.width - 165, 52);
         }
 
+        function drawPauseScreen() {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = "#f1c40f";
+            ctx.font = "bold 45px 'Courier New', Courier, monospace";
+            ctx.textAlign = "center";
+            ctx.fillText("PAUSED", canvas.width / 2, canvas.height / 2 - 15);
+
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "18px 'Courier New', Courier, monospace";
+            ctx.fillText("Press SPACE to resume", canvas.width / 2, canvas.height / 2 + 30);
+            ctx.textAlign = "start";
+        }
+
         function drawGameOver() {
             ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -457,12 +499,16 @@
             baseSpeed = 0.6;
             lilky = [];
             isGameOver = false;
+            isPaused = false;
+            gameLoop();
         }
 
         // ==========================================
         // HLAVNÍ HERNÍ SMYČKA
         // ==========================================
         function gameLoop() {
+            if (isGameOver) return;
+
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             drawEnvironment(); 
@@ -470,11 +516,12 @@
             drawPlayer();      
             drawUI();
 
-            if (isGameOver) {
-                drawGameOver();
-            } else {
-                requestAnimationFrame(gameLoop);
+            if (isPaused) {
+                drawPauseScreen();
+                return; // Zastaví requestAnimationFrame dokud se neodpauzuje
             }
+
+            requestAnimationFrame(gameLoop);
         }
 
         playerImg.onload = () => {
