@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>Egg & Lilek - Automatic Shop Entry</title>
+    <title>Egg & Lilek - Top Boxes Edition</title>
     <style>
         body { 
             margin: 0; 
@@ -93,7 +93,7 @@
         ];
 
         let isShopOpen = false;
-        let shopTriggered = false; // Aby se shop spustil jen jednou po 100 lilcích
+        let shopTriggered = false; 
         let unlockedBoxes = { box1: true, box2: false, box3: false };
         let activeBox = 1;
 
@@ -128,7 +128,7 @@
             drawCleanBrickBuilding(0, buildingWidth, 'left');
             drawCleanBrickBuilding(canvas.width - buildingWidth, buildingWidth, 'right');
 
-            // Vchod do obchodu přímo v pravé červené budově dole nad asfaltem
+            // Vchod do obchodu v pravé červené budově dole
             let shopUnlocked = score >= 100;
             ctx.fillStyle = "#111";
             ctx.fillRect(canvas.width - buildingWidth + 40, canvas.height - 180, 80, 80);
@@ -150,9 +150,6 @@
             for (let x = buildingWidth + 30; x < canvas.width - buildingWidth - 30; x += 25) {
                 ctx.fillRect(x, zebraBottomY, 14, 35);
             }
-
-            // Horní stěna silnice – vykreslení 3 boxů
-            drawBoxesOnRoad();
 
             ctx.strokeStyle = "#f1c40f";
             ctx.lineWidth = 4;
@@ -196,31 +193,42 @@
             ctx.fillRect(0, canvas.height - 100, canvas.width, 100);
         }
 
-        function drawBoxesOnRoad() {
-            let boxWidth = 90;
+        // ==========================================
+        // VYKRESLENÍ KRABIC NA HORNÍ LIŠTĚ
+        // ==========================================
+        function drawTopBoxes() {
+            let startX = canvas.width / 2 - 165;
+            let boxWidth = 100;
             let boxHeight = 45;
-            let startX = canvas.width / 2 - 150;
-            let boxY = canvas.height - 155;
+            let y = 15;
 
             const boxesData = [
-                { id: 1, name: "100 EGG", price: "0 USDC", unlocked: true },
-                { id: 2, name: "250 EGG", price: "0.5 USDC", unlocked: unlockedBoxes.box2 },
-                { id: 3, name: "500 EGG", price: "1 USDC", unlocked: unlockedBoxes.box3 }
+                { id: 1, name: "100 EGG", unlocked: true },
+                { id: 2, name: "250 EGG", unlocked: unlockedBoxes.box2 },
+                { id: 3, name: "500 EGG", unlocked: unlockedBoxes.box3 }
             ];
 
             boxesData.forEach((b, index) => {
-                let bx = startX + (index * 105);
-                ctx.fillStyle = activeBox === b.id ? "#3498db" : (b.unlocked ? "#444" : "#222");
-                ctx.fillRect(bx, boxY, boxWidth, boxHeight);
+                let x = startX + (index * 115);
+                
+                // Tělo krabice
+                ctx.fillStyle = activeBox === b.id ? "#2980b9" : (b.unlocked ? "#8e44ad" : "#444");
+                ctx.fillRect(x, y + 10, boxWidth, boxHeight - 10);
+                
+                // Víko krabice
+                ctx.fillStyle = activeBox === b.id ? "#3498db" : (b.unlocked ? "#9b59b6" : "#555");
+                ctx.fillRect(x - 4, y, boxWidth + 8, 12);
+
+                // Ohraničení krabice
                 ctx.strokeStyle = b.unlocked ? "#f1c40f" : "#666";
                 ctx.lineWidth = 2;
-                ctx.strokeRect(bx, boxY, boxWidth, boxHeight);
+                ctx.strokeRect(x, y + 10, boxWidth, boxHeight - 10);
+                ctx.strokeRect(x - 4, y, boxWidth + 8, 12);
 
-                ctx.fillStyle = b.unlocked ? "#fff" : "#777";
+                // Text v krabici
+                ctx.fillStyle = b.unlocked ? "#ffffff" : "#888";
                 ctx.font = "bold 12px 'Courier New', Courier, monospace";
-                ctx.fillText(b.name, bx + 10, boxY + 18);
-                ctx.fillStyle = "#f1c40f";
-                ctx.fillText(b.price, bx + 10, boxY + 36);
+                ctx.fillText(b.name, x + 12, y + 32);
             });
         }
 
@@ -489,33 +497,36 @@
             // Levá budova: Skóre
             ctx.fillStyle = "rgba(15, 15, 15, 0.85)";
             ctx.beginPath();
-            ctx.roundRect(15, 15, 160, 45, 8);
+            ctx.roundRect(15, 15, 130, 45, 8);
             ctx.fill();
             ctx.strokeStyle = "#3498db";
             ctx.lineWidth = 2;
             ctx.stroke();
 
             ctx.fillStyle = "#3498db";
-            ctx.fillText("EGGPLANTS", 25, 33);
+            ctx.fillText("SCORE", 25, 33);
             ctx.fillStyle = "#ffffff";
             ctx.font = "bold 18px 'Courier New', Courier, monospace";
             ctx.fillText(score, 25, 52);
+
+            // Vykreslení krabic nahoře
+            drawTopBoxes();
 
             // Pravá budova: Životy
             ctx.font = "bold 15px 'Courier New', Courier, monospace";
             ctx.fillStyle = "rgba(15, 15, 15, 0.85)";
             ctx.beginPath();
-            ctx.roundRect(canvas.width - 175, 15, 160, 45, 8);
+            ctx.roundRect(canvas.width - 145, 15, 130, 45, 8);
             ctx.fill();
             ctx.strokeStyle = "#e74c3c";
             ctx.lineWidth = 2;
             ctx.stroke();
 
             ctx.fillStyle = "#e74c3c";
-            ctx.fillText("LIVES", canvas.width - 165, 33);
+            ctx.fillText("LIVES", canvas.width - 135, 33);
             ctx.fillStyle = "#ffffff";
-            ctx.font = "bold 18px 'Courier New', Courier, monospace";
-            ctx.fillText("❤️ ".repeat(Math.max(0, lives)), canvas.width - 165, 52);
+            ctx.font = "bold 16px 'Courier New', Courier, monospace";
+            ctx.fillText("❤️ ".repeat(Math.max(0, lives)), canvas.width - 135, 52);
         }
 
         function drawShopScreen() {
