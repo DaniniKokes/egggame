@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>Egg & Lilek - Balanced Speed & Fixed Game Over</title>
+    <title>Egg & Lilek - Web3 Shop Edition</title>
     <style>
         body { 
             margin: 0; 
@@ -68,19 +68,19 @@
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
                 osc.start(now);
                 osc.stop(now + 0.5);
-            } else if (type === 'pause') {
+            } else if (type === 'shop') {
                 osc.type = 'square';
-                osc.frequency.setValueAtTime(500, now);
-                osc.frequency.setValueAtTime(700, now + 0.08);
-                gain.gain.setValueAtTime(0.1, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.frequency.setValueAtTime(600, now);
+                osc.frequency.setValueAtTime(900, now + 0.15);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
                 osc.start(now);
-                osc.stop(now + 0.15);
+                osc.stop(now + 0.2);
             }
         }
 
         // ==========================================
-        // SEKCE 1: BUDOVY, ULICE, ZEBRY A LAMPY
+        // SEKCE 1: BUDOVY, ULICE, SHOP A BOXES
         // ==========================================
         const buildingWidth = 220;
         const themeColor = "#111111";
@@ -91,6 +91,10 @@
             { id: 2, side: 'right', y: 55 },
             { id: 3, side: 'right', y: 275 }
         ];
+
+        let isShopOpen = false;
+        let unlockedBoxes = { box1: true, box2: false, box3: false };
+        let activeBox = 1; // Aktuální vybraný box
 
         function drawCleanBrickBuilding(startX, width, side) {
             ctx.fillStyle = "#A52A2A";
@@ -134,6 +138,9 @@
                 ctx.fillRect(x, zebraBottomY, 14, 35);
             }
 
+            // Horní stěna silnice – vykreslení 3 boxů
+            drawBoxesOnRoad();
+
             ctx.strokeStyle = "#f1c40f";
             ctx.lineWidth = 4;
             ctx.setLineDash([20, 15]);
@@ -171,31 +178,51 @@
                 }
             });
 
-            const lampYPositions = [240, 480]; 
-            lampYPositions.forEach(lampY => {
-                ctx.fillStyle = "rgba(241, 196, 15, 0.3)";
-                ctx.beginPath();
-                ctx.arc(buildingWidth + 15, lampY, 30, 0, Math.PI * 2);
-                ctx.arc(canvas.width - buildingWidth - 15, lampY, 30, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.fillStyle = "#555";
-                ctx.fillRect(buildingWidth + 13, lampY - 15, 4, 30);
-                ctx.fillStyle = "#f1c40f";
-                ctx.beginPath();
-                ctx.arc(buildingWidth + 15, lampY, 3, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.fillStyle = "#555";
-                ctx.fillRect(canvas.width - buildingWidth - 17, lampY - 15, 4, 30);
-                ctx.fillStyle = "#f1c40f";
-                ctx.beginPath();
-                ctx.arc(canvas.width - buildingWidth - 15, lampY, 3, 0, Math.PI * 2);
-                ctx.fill();
-            });
-
+            // Asfalt (spodek)
             ctx.fillStyle = "#1a1a1a";
             ctx.fillRect(0, canvas.height - 100, canvas.width, 100);
+
+            // Vchod do Shopu vpravo dole (odemkne se po 100 lilcích)
+            let shopUnlocked = score >= 100;
+            ctx.fillStyle = shopUnlocked ? "#27ae60" : "#555";
+            ctx.fillRect(canvas.width - 150, canvas.height - 90, 100, 80);
+            ctx.fillStyle = "#fff";
+            ctx.font = "bold 14px 'Courier New', Courier, monospace";
+            ctx.fillText("SHOP", canvas.width - 122, canvas.height - 45);
+            if (shopUnlocked) {
+                ctx.strokeStyle = "#f1c40f";
+                ctx.lineWidth = 2;
+                ctx.strokeRect(canvas.width - 150, canvas.height - 90, 100, 80);
+            }
+        }
+
+        function drawBoxesOnRoad() {
+            // Vykreslení 3 boxů na horní stěně silnice (střed obrazovky nad silnicí)
+            let boxWidth = 90;
+            let boxHeight = 45;
+            let startX = canvas.width / 2 - 150;
+            let boxY = canvas.height - 155;
+
+            const boxesData = [
+                { id: 1, name: "100 EGG", price: "0 USDC", unlocked: true },
+                { id: 2, name: "250 EGG", price: "0.5 USDC", unlocked: unlockedBoxes.box2 },
+                { id: 3, name: "500 EGG", price: "1 USDC", unlocked: unlockedBoxes.box3 }
+            ];
+
+            boxesData.forEach((b, index) => {
+                let bx = startX + (index * 105);
+                ctx.fillStyle = activeBox === b.id ? "#3498db" : (b.unlocked ? "#444" : "#222");
+                ctx.fillRect(bx, boxY, boxWidth, boxHeight);
+                ctx.strokeStyle = b.unlocked ? "#f1c40f" : "#666";
+                ctx.lineWidth = 2;
+                ctx.strokeRect(bx, boxY, boxWidth, boxHeight);
+
+                ctx.fillStyle = b.unlocked ? "#fff" : "#777";
+                ctx.font = "bold 12px 'Courier New', Courier, monospace";
+                ctx.fillText(b.name, bx + 10, boxY + 18);
+                ctx.fillStyle = "#f1c40f";
+                ctx.fillText(b.price, bx + 10, boxY + 36);
+            });
         }
 
         // ==========================================
@@ -220,10 +247,17 @@
         let isPaused = false;
 
         window.addEventListener("keydown", (e) => {
+            if (isShopOpen) {
+                if (e.key === "Escape" || e.key === "Enter") {
+                    isShopOpen = false;
+                }
+                return;
+            }
+
             if (e.code === "Space") {
                 if (!isGameOver) {
                     isPaused = !isPaused;
-                    playSound('pause');
+                    playSound('shop');
                     if (!isPaused) {
                         gameLoop();
                     }
@@ -259,6 +293,32 @@
             if (oldIndex !== currentPosIndex) {
                 isMovingEffect = true;
                 animTimer = 10;
+            }
+        });
+
+        // Kliknutí myší na Shop vpravo dole
+        window.addEventListener("click", (e) => {
+            let rect = canvas.getBoundingClientRect();
+            let mouseX = e.clientX - rect.left;
+            let mouseY = e.clientY - rect.top;
+
+            // Kontrola kliknutí na vchod do shopu
+            if (score >= 100 && mouseX >= canvas.width - 150 && mouseX <= canvas.width - 50 &&
+                mouseY >= canvas.height - 90 && mouseY <= canvas.height - 10) {
+                isShopOpen = true;
+                playSound('shop');
+            }
+
+            // Pokud je shop otevřený, kliknutí na boxy pro nákup
+            if (isShopOpen) {
+                // Box 2 (0.5 USDC)
+                if (mouseX >= canvas.width / 2 - 160 && mouseX <= canvas.width / 2 - 30 && mouseY >= 280 && mouseY <= 360) {
+                    if (score >= 100) { unlockedBoxes.box2 = true; activeBox = 2; playSound('shop'); }
+                }
+                // Box 3 (1 USDC)
+                if (mouseX >= canvas.width / 2 + 30 && mouseX <= canvas.width / 2 + 160 && mouseY >= 280 && mouseY <= 360) {
+                    if (score >= 100) { unlockedBoxes.box3 = true; activeBox = 3; playSound('shop'); }
+                }
             }
         });
 
@@ -298,7 +358,7 @@
 
         let lilky = [];
         let spawnCounter = 0;
-        let baseSpeed = 0.5; // Ještě pozvolnější start
+        let baseSpeed = 0.5; 
 
         function spawnLilek() {
             let rIdx = Math.floor(Math.random() * 4);
@@ -321,9 +381,8 @@
         }
 
         function updateAndDrawLilky() {
-            if (!isPaused && !isGameOver) {
+            if (!isPaused && !isGameOver && !isShopOpen) {
                 spawnCounter++;
-                // Pozvolnější zkracování intervalu spawnování
                 let currentSpawnInterval = Math.max(90, 180 - (score * 2));
 
                 if (spawnCounter > currentSpawnInterval) { 
@@ -336,7 +395,7 @@
                 let l = lilky[i];
                 let r = rooms[l.roomIndex];
 
-                if (!isPaused && !isGameOver) {
+                if (!isPaused && !isGameOver && !isShopOpen) {
                     if (l.state === 'room') {
                         let windowX = l.isLeft ? buildingWidth : (canvas.width - buildingWidth);
                         l.x += l.isLeft ? l.speed : -l.speed;
@@ -365,7 +424,6 @@
                             playSound('catch'); 
                             lilky.splice(i, 1); 
                             score++;
-                            // Mnohem pomalejší nárůst rychlosti (0.01 místo 0.03)
                             baseSpeed = 0.5 + (score * 0.01); 
                             continue;
                         }
@@ -420,7 +478,7 @@
         }
 
         // ==========================================
-        // UI, PAUSE A GAME OVER
+        // UI, SHOP, PAUSE A GAME OVER
         // ==========================================
         function drawUI() {
             ctx.font = "bold 15px 'Courier New', Courier, monospace";
@@ -455,6 +513,61 @@
             ctx.fillStyle = "#ffffff";
             ctx.font = "bold 18px 'Courier New', Courier, monospace";
             ctx.fillText("❤️ ".repeat(Math.max(0, lives)), canvas.width - 165, 52);
+        }
+
+        function drawShopScreen() {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = "#f1c40f";
+            ctx.font = "bold 35px 'Courier New', Courier, monospace";
+            ctx.textAlign = "center";
+            ctx.fillText("WEB3 EGGPLANT SHOP", canvas.width / 2, 120);
+
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "16px 'Courier New', Courier, monospace";
+            ctx.fillText("Upgrade your capacity boxes using USDC", canvas.width / 2, 160);
+
+            // Box 1 (Free)
+            ctx.fillStyle = "#222";
+            ctx.fillRect(canvas.width / 2 - 270, 220, 150, 140);
+            ctx.strokeStyle = "#3498db";
+            ctx.strokeRect(canvas.width / 2 - 270, 220, 150, 140);
+            ctx.fillStyle = "#3498db";
+            ctx.fillText("100 EGG BOX", canvas.width / 2 - 195, 250);
+            ctx.fillStyle = "#fff";
+            ctx.fillText("Price: 0 USDC", canvas.width / 2 - 195, 290);
+            ctx.fillStyle = "#27ae60";
+            ctx.fillText("UNLOCKED", canvas.width / 2 - 195, 330);
+
+            // Box 2 (0.5 USDC)
+            ctx.fillStyle = "#222";
+            ctx.fillRect(canvas.width / 2 - 75, 220, 150, 140);
+            ctx.strokeStyle = unlockedBoxes.box2 ? "#27ae60" : "#f1c40f";
+            ctx.strokeRect(canvas.width / 2 - 75, 220, 150, 140);
+            ctx.fillStyle = "#f1c40f";
+            ctx.fillText("250 EGG BOX", canvas.width / 2, 250);
+            ctx.fillStyle = "#fff";
+            ctx.fillText("Price: 0.5 USDC", canvas.width / 2, 290);
+            ctx.fillStyle = unlockedBoxes.box2 ? "#27ae60" : "#f1c40f";
+            ctx.fillText(unlockedBoxes.box2 ? "ACTIVE" : "BUY (Click)", canvas.width / 2, 330);
+
+            // Box 3 (1 USDC)
+            ctx.fillStyle = "#222";
+            ctx.fillRect(canvas.width / 2 + 120, 220, 150, 140);
+            ctx.strokeStyle = unlockedBoxes.box3 ? "#27ae60" : "#f1c40f";
+            ctx.strokeRect(canvas.width / 2 + 120, 220, 150, 140);
+            ctx.fillStyle = "#f1c40f";
+            ctx.fillText("500 EGG BOX", canvas.width / 2 + 195, 250);
+            ctx.fillStyle = "#fff";
+            ctx.fillText("Price: 1 USDC", canvas.width / 2 + 195, 290);
+            ctx.fillStyle = unlockedBoxes.box3 ? "#27ae60" : "#f1c40f";
+            ctx.fillText(unlockedBoxes.box3 ? "ACTIVE" : "BUY (Click)", canvas.width / 2 + 195, 330);
+
+            ctx.fillStyle = "#aaa";
+            ctx.font = "14px 'Courier New', Courier, monospace";
+            ctx.fillText("Press ESC or ENTER to return to game", canvas.width / 2, 450);
+            ctx.textAlign = "start";
         }
 
         function drawPauseScreen() {
@@ -498,6 +611,9 @@
             lilky = [];
             isGameOver = false;
             isPaused = false;
+            isShopOpen = false;
+            unlockedBoxes = { box1: true, box2: false, box3: false };
+            activeBox = 1;
             gameLoop();
         }
 
@@ -514,7 +630,13 @@
 
             if (isGameOver) {
                 drawGameOver();
-                return; // Zastaví smyčku a vykreslí Game Over přes obrazovku
+                return; 
+            }
+
+            if (isShopOpen) {
+                drawShopScreen();
+                requestAnimationFrame(gameLoop);
+                return;
             }
 
             if (isPaused) {
