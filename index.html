@@ -2,11 +2,11 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>Egg & Lilek - Opravené padání a skóre</title>
+    <title>Egg & Lilek - Modern Retro Web3 Edition</title>
     <style>
         body { 
             margin: 0; 
-            background: #111; 
+            background: #0d0d0d; 
             display: flex; 
             align-items: center; 
             justify-content: center; 
@@ -15,7 +15,8 @@
             font-family: 'Courier New', Courier, monospace;
         }
         canvas { 
-            border: 4px solid #444; 
+            border: 4px solid #222; 
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.8);
             background: #2b2b2b; 
         }
     </style>
@@ -231,7 +232,7 @@
 
         let lilky = [];
         let spawnCounter = 0;
-        let baseSpeed = 0.6; // Pěkně pomalý začátek
+        let baseSpeed = 0.6; 
 
         function spawnLilek() {
             let rIdx = Math.floor(Math.random() * 4);
@@ -247,7 +248,7 @@
                 y: startY,
                 isLeft: isLeft,
                 speed: baseSpeed,
-                state: 'room', // 'room', 'ramp', 'falling', 'ground'
+                state: 'room', 
                 angle: 0,
                 counted: false
             });
@@ -285,7 +286,6 @@
                     l.y = rampStartY + (progress * 60) - 6;
                     l.angle += l.isLeft ? 0.06 : -0.06;
 
-                    // Kontrola chycení panáčkem
                     let targetPos = positions[l.roomIndex];
                     let catchAreaX = targetPos.x + 15;
                     let catchAreaY = targetPos.y + 20;
@@ -294,21 +294,19 @@
                     if (distance < 32 && currentPosIndex === l.roomIndex) {
                         lilky.splice(i, 1); 
                         score++;
-                        baseSpeed = 0.6 + (score * 0.03); // Postupné zrychlování
+                        baseSpeed = 0.6 + (score * 0.03); 
                         continue;
                     }
 
-                    // Konec rampy – pokud panáček lilek nemá, začne padat dolů na zem
                     let rampEndX = l.isLeft ? (buildingWidth + 70) : (canvas.width - buildingWidth - 70);
                     if ((l.isLeft && l.x >= rampEndX) || (!l.isLeft && l.x <= rampEndX)) {
                         l.state = 'falling';
                     }
                 } 
                 else if (l.state === 'falling') {
-                    l.y += 4; // Rychlý pád dolů na asfalt
+                    l.y += 4; 
                     l.angle += 0.1;
 
-                    // Dopad na zem (spodní okraj silnice)
                     let groundY = canvas.height - 120;
                     if (l.y >= groundY) {
                         l.y = groundY;
@@ -324,7 +322,6 @@
                     }
                 }
 
-                // Vykreslení lilku
                 ctx.save();
                 ctx.translate(l.x, l.y - 10);
                 ctx.rotate(l.angle);
@@ -339,7 +336,6 @@
                 }
                 ctx.restore();
 
-                // Vyčištění lilků ležících na zemi
                 if (l.state === 'ground') {
                     if (Math.random() < 0.03) {
                         lilky.splice(i, 1);
@@ -349,20 +345,41 @@
         }
 
         // ==========================================
-        // UI: SKÓRE A ŽIVOTY
+        // MODERN RETRO UI (ANGLICKY VLEVO A VPRAVO)
         // ==========================================
         function drawUI() {
-            ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-            ctx.fillRect(canvas.width / 2 - 110, 15, 220, 40);
-            ctx.strokeStyle = "#f1c40f";
-            ctx.lineWidth = 2;
-            ctx.strokeRect(canvas.width / 2 - 110, 15, 220, 40);
+            ctx.font = "bold 15px 'Courier New', Courier, monospace";
 
+            // 1. Levá budova: Skóre (EGGPLANTS)
+            ctx.fillStyle = "rgba(15, 15, 15, 0.85)";
+            ctx.beginPath();
+            ctx.roundRect(15, 15, 160, 45, 8);
+            ctx.fill();
+            ctx.strokeStyle = "#3498db"; // Moderní modrý neonový nádech
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.fillStyle = "#3498db";
+            ctx.fillText("EGGPLANTS", 25, 33);
             ctx.fillStyle = "#ffffff";
             ctx.font = "bold 18px 'Courier New', Courier, monospace";
-            ctx.textAlign = "center";
-            ctx.fillText("Lilky: " + score + " | Životy: " + lives, canvas.width / 2, 42);
-            ctx.textAlign = "start";
+            ctx.fillText(score, 25, 52);
+
+            // 2. Pravá budova: Životy (LIVES)
+            ctx.font = "bold 15px 'Courier New', Courier, monospace";
+            ctx.fillStyle = "rgba(15, 15, 15, 0.85)";
+            ctx.beginPath();
+            ctx.roundRect(canvas.width - 175, 15, 160, 45, 8);
+            ctx.fill();
+            ctx.strokeStyle = "#e74c3c"; // Moderní červený neonový nádech
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.fillStyle = "#e74c3c";
+            ctx.fillText("LIVES", canvas.width - 165, 33);
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 18px 'Courier New', Courier, monospace";
+            ctx.fillText("❤️ ".repeat(Math.max(0, lives)), canvas.width - 165, 52);
         }
 
         function drawGameOver() {
@@ -376,11 +393,11 @@
 
             ctx.fillStyle = "#ffffff";
             ctx.font = "22px 'Courier New', Courier, monospace";
-            ctx.fillText("Uloveno lilků: " + score, canvas.width / 2, canvas.height / 2 + 20);
+            ctx.fillText("Eggplants caught: " + score, canvas.width / 2, canvas.height / 2 + 20);
             
             ctx.fillStyle = "#f1c40f";
             ctx.font = "18px 'Courier New', Courier, monospace";
-            ctx.fillText("Stisknutím ENTER hru restartuješ", canvas.width / 2, canvas.height / 2 + 70);
+            ctx.fillText("Press ENTER to restart", canvas.width / 2, canvas.height / 2 + 70);
             ctx.textAlign = "start";
         }
 
