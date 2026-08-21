@@ -33,6 +33,8 @@
         let isConnected = false;
         let walletAddress = "";
         let playTokenBalance = 500; 
+        let freeTrialMode = false;
+        const FREE_TRIAL_LIMIT = 50;
 
         // ==========================================
         // WEB AUDIO API (SOUND & INTRO MUSIC)
@@ -306,10 +308,6 @@
             startBackgroundMusic();
 
             if (!gameStarted) {
-                if (e.key === "Enter" || e.code === "Space") {
-                    gameStarted = true;
-                    playSound('shop');
-                }
                 return;
             }
 
@@ -366,12 +364,26 @@
             let mouseY = e.clientY - rect.top;
 
             if (!gameStarted) {
-                gameStarted = true;
-                playSound('shop');
+                // Tlačítko 1: Connect Wallet (Levé tlačítko)
+                if (mouseX >= canvas.width / 2 - 240 && mouseX <= canvas.width / 2 - 20 && mouseY >= canvas.height / 2 + 20 && mouseY <= canvas.height / 2 + 80) {
+                    isConnected = true;
+                    walletAddress = "PSG1...9xK4";
+                    freeTrialMode = false;
+                    gameStarted = true;
+                    playSound('shop');
+                    return;
+                }
+                // Tlačítko 2: Free Trial 50 Eggplants (Pravé tlačítko)
+                if (mouseX >= canvas.width / 2 + 20 && mouseX <= canvas.width / 2 + 240 && mouseY >= canvas.height / 2 + 20 && mouseY <= canvas.height / 2 + 80) {
+                    freeTrialMode = true;
+                    gameStarted = true;
+                    playSound('shop');
+                    return;
+                }
                 return;
             }
 
-            if (!isConnected && mouseX >= canvas.width - 165 && mouseX <= canvas.width - 15 && mouseY >= 15 && mouseY <= 60) {
+            if (!isConnected && !freeTrialMode && mouseX >= canvas.width - 165 && mouseX <= canvas.width - 15 && mouseY >= 15 && mouseY <= 60) {
                 isConnected = true;
                 walletAddress = "PSG1...9xK4";
                 playSound('shop');
@@ -515,6 +527,12 @@
                             score++;
                             baseSpeed = 0.5 + (score * 0.01); 
 
+                            // Kontrola Free Trial limitu (50 úlovků)
+                            if (freeTrialMode && score >= FREE_TRIAL_LIMIT) {
+                                isGameOver = true;
+                                playSound('gameover');
+                            }
+
                             if (score >= 100 && !shopTriggered) {
                                 shopTriggered = true;
                                 isShopOpen = true;
@@ -581,20 +599,38 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             ctx.fillStyle = "#f1c40f";
-            ctx.font = "bold 40px 'Courier New', Courier, monospace";
+            ctx.font = "bold 36px 'Courier New', Courier, monospace";
             ctx.textAlign = "center";
-            ctx.fillText("EGG & EGGPLANT", canvas.width / 2, canvas.height / 2 - 50);
+            ctx.fillText("EGG & EGGPLANT", canvas.width / 2, canvas.height / 2 - 90);
 
             ctx.fillStyle = "#3498db";
-            ctx.font = "bold 20px 'Courier New', Courier, monospace";
-            ctx.fillText("PSG1 DELUXE EDITION", canvas.width / 2, canvas.height / 2 - 10);
+            ctx.font = "bold 18px 'Courier New', Courier, monospace";
+            ctx.fillText("PSG1 DELUXE EDITION", canvas.width / 2, canvas.height / 2 - 50);
+
+            // Tlačítko 1: Connect Wallet
+            ctx.fillStyle = "#2ecc71";
+            ctx.fillRect(canvas.width / 2 - 240, canvas.height / 2 + 20, 220, 60);
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(canvas.width / 2 - 240, canvas.height / 2 + 20, 220, 60);
 
             ctx.fillStyle = "#ffffff";
-            ctx.font = "18px 'Courier New', Courier, monospace";
-            let alpha = Math.abs(Math.sin(Date.now() / 300));
-            ctx.globalAlpha = alpha;
-            ctx.fillText("PRESS START (ENTER / SPACE)", canvas.width / 2, canvas.height / 2 + 50);
-            ctx.globalAlpha = 1.0;
+            ctx.font = "bold 15px 'Courier New', Courier, monospace";
+            ctx.fillText("CONNECT WALLET", canvas.width / 2 - 130, canvas.height / 2 + 47);
+            ctx.font = "11px 'Courier New', Courier, monospace";
+            ctx.fillText("(Full Web3 Experience)", canvas.width / 2 - 130, canvas.height / 2 + 65);
+
+            // Tlačítko 2: Free Trial (50 Eggplants)
+            ctx.fillStyle = "#9b59b6";
+            ctx.fillRect(canvas.width / 2 + 20, canvas.height / 2 + 20, 220, 60);
+            ctx.strokeStyle = "#ffffff";
+            ctx.strokeRect(canvas.width / 2 + 20, canvas.height / 2 + 20, 220, 60);
+
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 15px 'Courier New', Courier, monospace";
+            ctx.fillText("FREE TRIAL", canvas.width / 2 + 130, canvas.height / 2 + 47);
+            ctx.font = "11px 'Courier New', Courier, monospace";
+            ctx.fillText("(Catch 50 Eggplants)", canvas.width / 2 + 130, canvas.height / 2 + 65);
 
             ctx.textAlign = "start";
         }
@@ -628,8 +664,13 @@
 
             ctx.fillStyle = isConnected ? "#2ecc71" : "#9b59b6";
             ctx.font = "bold 13px 'Courier New', Courier, monospace";
-            if (!isConnected) {
+            if (!isConnected && !freeTrialMode) {
                 ctx.fillText("CONNECT WALLET", canvas.width - 165, 42);
+            } else if (freeTrialMode) {
+                ctx.fillText("🎮 FREE TRIAL", canvas.width - 165, 33);
+                ctx.fillStyle = "#aaa";
+                ctx.font = "11px 'Courier New', Courier, monospace";
+                ctx.fillText("Goal: " + score + "/50", canvas.width - 165, 50);
             } else {
                 ctx.fillText("💰 " + playTokenBalance + " PLAY", canvas.width - 165, 33);
                 ctx.fillStyle = "#aaa";
@@ -733,7 +774,7 @@
             ctx.fillStyle = "#ff4d4d";
             ctx.font = "bold 45px 'Courier New', Courier, monospace";
             ctx.textAlign = "center";
-            ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 30);
+            ctx.fillText(freeTrialMode && score >= FREE_TRIAL_LIMIT ? "TRIAL COMPLETED!" : "GAME OVER", canvas.width / 2, canvas.height / 2 - 30);
 
             ctx.fillStyle = "#ffffff";
             ctx.font = "22px 'Courier New', Courier, monospace";
@@ -789,7 +830,7 @@
             }
 
             if (isPaused) {
-                updateAndDrawLilky(); // Vykreslí aktuální scénu pod pauzou, ale neposouvá čas
+                updateAndDrawLilky(); 
                 drawPlayer();
                 drawUI();
                 drawPauseScreen();
