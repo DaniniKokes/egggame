@@ -373,7 +373,7 @@
                     playSound('shop');
                     return;
                 }
-                // Tlačítko 2: Free Trial 50 Eggplants (Pravé tlačítko)
+                // Tlačítko 2: Free Trial (Pravé tlačítko)
                 if (mouseX >= canvas.width / 2 + 20 && mouseX <= canvas.width / 2 + 240 && mouseY >= canvas.height / 2 + 20 && mouseY <= canvas.height / 2 + 80) {
                     freeTrialMode = true;
                     gameStarted = true;
@@ -527,7 +527,6 @@
                             score++;
                             baseSpeed = 0.5 + (score * 0.01); 
 
-                            // Kontrola Free Trial limitu (50 úlovků)
                             if (freeTrialMode && score >= FREE_TRIAL_LIMIT) {
                                 isGameOver = true;
                                 playSound('gameover');
@@ -787,6 +786,9 @@
         }
 
         function restartGame() {
+            gameStarted = false;
+            isConnected = false;
+            freeTrialMode = false;
             score = 0;
             lives = 3;
             baseSpeed = 0.5;
