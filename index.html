@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>Egg & Lilek - S životy a zrychlováním</title>
+    <title>Egg & Lilek - Opravené padání a skóre</title>
     <style>
         body { 
             margin: 0; 
@@ -162,7 +162,7 @@
         let animTimer = 0;
         let isMovingEffect = false;
         let score = 0;
-        let lives = 3;         // Počet životů
+        let lives = 3;
         let isGameOver = false;
 
         window.addEventListener("keydown", (e) => {
@@ -231,7 +231,7 @@
 
         let lilky = [];
         let spawnCounter = 0;
-        let baseSpeed = 0.7; // Začínáme pomaleji
+        let baseSpeed = 0.6; // Pěkně pomalý začátek
 
         function spawnLilek() {
             let rIdx = Math.floor(Math.random() * 4);
@@ -248,14 +248,14 @@
                 isLeft: isLeft,
                 speed: baseSpeed,
                 state: 'room', // 'room', 'ramp', 'falling', 'ground'
-                angle: 0 
+                angle: 0,
+                counted: false
             });
         }
 
         function updateAndDrawLilky() {
             spawnCounter++;
-            // Interval spawnování se s rostoucím skóre zkracuje (chodí častěji)
-            let currentSpawnInterval = Math.max(70, 160 - (score * 4));
+            let currentSpawnInterval = Math.max(70, 160 - (score * 3));
 
             if (spawnCounter > currentSpawnInterval) { 
                 spawnLilek();
@@ -266,7 +266,6 @@
                 let l = lilky[i];
                 let r = rooms[l.roomIndex];
 
-                // 1. Pohyb v místnosti
                 if (l.state === 'room') {
                     let windowX = l.isLeft ? buildingWidth : (canvas.width - buildingWidth);
                     l.x += l.isLeft ? l.speed : -l.speed;
@@ -277,7 +276,6 @@
                         l.state = 'ramp';
                     }
                 } 
-                // 2. Pohyb po rampě dolů do ulice
                 else if (l.state === 'ramp') {
                     let rampStartX = l.isLeft ? buildingWidth : (canvas.width - buildingWidth);
                     let rampStartY = r.y + 70;
@@ -287,40 +285,41 @@
                     l.y = rampStartY + (progress * 60) - 6;
                     l.angle += l.isLeft ? 0.06 : -0.06;
 
-                    // Kontrola, zda lilek dorazil k panáčkovi (sběrná zóna)
+                    // Kontrola chycení panáčkem
                     let targetPos = positions[l.roomIndex];
                     let catchAreaX = targetPos.x + 15;
                     let catchAreaY = targetPos.y + 20;
                     let distance = Math.hypot(l.x - catchAreaX, l.y - catchAreaY);
 
-                    if (distance < 30) {
+                    if (distance < 32 && currentPosIndex === l.roomIndex) {
                         lilky.splice(i, 1); 
                         score++;
-                        // Zvýšení celkové rychlosti hry s každým bodem
-                        baseSpeed = 0.7 + (score * 0.04);
+                        baseSpeed = 0.6 + (score * 0.03); // Postupné zrychlování
                         continue;
                     }
 
-                    // Pokud panáček lilek minul, rampa končí a lilek padá dál do silnice
-                    let endOfRampX = l.isLeft ? buildingWidth + 75 : canvas.width - buildingWidth - 75;
-                    if ((l.isLeft && l.x > endOfRampX) || (!l.isLeft && l.x < endOfRampX)) {
+                    // Konec rampy – pokud panáček lilek nemá, začne padat dolů na zem
+                    let rampEndX = l.isLeft ? (buildingWidth + 70) : (canvas.width - buildingWidth - 70);
+                    if ((l.isLeft && l.x >= rampEndX) || (!l.isLeft && l.x <= rampEndX)) {
                         l.state = 'falling';
                     }
                 } 
-                // 3. Volný pád dál do ulice na zem
                 else if (l.state === 'falling') {
-                    l.y += 3.5; // Rychlý pád dolů
-                    l.x += l.isLeft ? 0.5 : -0.5;
+                    l.y += 4; // Rychlý pád dolů na asfalt
                     l.angle += 0.1;
 
-                    // Dopad na zem (asfalt dole u chodníku / podlahy)
-                    let groundY = canvas.height - 110;
+                    // Dopad na zem (spodní okraj silnice)
+                    let groundY = canvas.height - 120;
                     if (l.y >= groundY) {
                         l.y = groundY;
                         l.state = 'ground';
-                        lives--; // Ztráta života!
-                        if (lives <= 0) {
-                            isGameOver = true;
+                        
+                        if (!l.counted) {
+                            lives--;
+                            l.counted = true;
+                            if (lives <= 0) {
+                                isGameOver = true;
+                            }
                         }
                     }
                 }
@@ -340,10 +339,11 @@
                 }
                 ctx.restore();
 
-                // Odstranění lilků ležících na zemi po chvíli nebo mimo obraz
+                // Vyčištění lilků ležících na zemi
                 if (l.state === 'ground') {
-                    // Můžeme je nechat chvíli ležet nebo je hned odstranit po pár snímcích, tady je po chvíli smažeme
-                    if (Math.random() < 0.02) lilky.splice(i, 1);
+                    if (Math.random() < 0.03) {
+                        lilky.splice(i, 1);
+                    }
                 }
             }
         }
@@ -352,7 +352,6 @@
         // UI: SKÓRE A ŽIVOTY
         // ==========================================
         function drawUI() {
-            // Skóre tabule (uprostřed)
             ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
             ctx.fillRect(canvas.width / 2 - 110, 15, 220, 40);
             ctx.strokeStyle = "#f1c40f";
@@ -388,7 +387,7 @@
         function restartGame() {
             score = 0;
             lives = 3;
-            baseSpeed = 0.7;
+            baseSpeed = 0.6;
             lilky = [];
             isGameOver = false;
         }
@@ -411,7 +410,6 @@
             }
         }
 
-        // Spuštění po načtení obrázku
         playerImg.onload = () => {
             gameLoop();
         };
