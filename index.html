@@ -2,11 +2,11 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>Egg & Lilek - Play Solana (PSG1) Edition</title>
+    <title>Egg & Lilek - PSG1 Deluxe Edition</title>
     <style>
         body { 
             margin: 0; 
-            background: #0d0d0d; 
+            background: #09090c; 
             display: flex; 
             align-items: center; 
             justify-content: center; 
@@ -15,9 +15,9 @@
             font-family: 'Courier New', Courier, monospace;
         }
         canvas { 
-            border: 4px solid #222; 
-            box-shadow: 0 0 25px rgba(0, 0, 0, 0.8);
-            background: #2b2b2b; 
+            border: 4px solid #1a1a24; 
+            box-shadow: 0 0 35px rgba(0, 0, 0, 0.9);
+            background: #1f1f2e; 
         }
     </style>
 </head>
@@ -32,10 +32,10 @@
         // ==========================================
         let isConnected = false;
         let walletAddress = "";
-        let playTokenBalance = 500; // Počáteční testovací zůstatek PLAY tokenů v peněžence
+        let playTokenBalance = 500; // Počáteční testovací zůstatek PLAY tokenů
 
         // ==========================================
-        // WEBS AUDIO API (GENEROVÁNÍ ZVUKŮ)
+        // WEB AUDIO API (ZVUKY)
         // ==========================================
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -52,33 +52,33 @@
 
             if (type === 'catch') {
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(400, now);
-                osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+                osc.frequency.setValueAtTime(450, now);
+                osc.frequency.exponentialRampToValueAtTime(850, now + 0.1);
                 gain.gain.setValueAtTime(0.15, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
                 osc.start(now);
                 osc.stop(now + 0.1);
             } else if (type === 'drop') {
                 osc.type = 'triangle';
-                osc.frequency.setValueAtTime(150, now);
-                osc.frequency.exponentialRampToValueAtTime(50, now + 0.2);
+                osc.frequency.setValueAtTime(140, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.2);
                 gain.gain.setValueAtTime(0.2, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
                 osc.start(now);
                 osc.stop(now + 0.2);
             } else if (type === 'gameover') {
                 osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(300, now);
-                osc.frequency.setValueAtTime(200, now + 0.15);
-                osc.frequency.setValueAtTime(100, now + 0.3);
+                osc.frequency.setValueAtTime(280, now);
+                osc.frequency.setValueAtTime(180, now + 0.15);
+                osc.frequency.setValueAtTime(90, now + 0.3);
                 gain.gain.setValueAtTime(0.2, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
                 osc.start(now);
                 osc.stop(now + 0.5);
             } else if (type === 'shop') {
                 osc.type = 'square';
-                osc.frequency.setValueAtTime(600, now);
-                osc.frequency.setValueAtTime(900, now + 0.15);
+                osc.frequency.setValueAtTime(650, now);
+                osc.frequency.setValueAtTime(950, now + 0.15);
                 gain.gain.setValueAtTime(0.15, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
                 osc.start(now);
@@ -87,10 +87,9 @@
         }
 
         // ==========================================
-        // SEKCE 1: BUDOVY, ULICE, SHOP A BOXES
+        // GRAFICKY VYLEPŠENÉ BUDOVY A OKOLÍ
         // ==========================================
         const buildingWidth = 220;
-        const themeColor = "#111111";
 
         const rooms = [
             { id: 0, side: 'left',  y: 55 },
@@ -103,64 +102,73 @@
         let shopTriggered = false; 
         let unlockedBoxes = { box1: true, box2: false, box3: false };
         let activeBox = 1;
-        let hasCharityNFT = false; // Vlastnictví NFT památky
+        let familySupported = false; // Indikátor upřímné podpory rodiny
 
         let txPending = false;
         let txMessage = "";
 
-        function drawCleanBrickBuilding(startX, width, side) {
-            ctx.fillStyle = "#A52A2A";
+        function drawDetailedBuilding(startX, width, side) {
+            // Základní stěna budovy (sytější cihlová barva)
+            ctx.fillStyle = "#8E2828";
             ctx.fillRect(startX, 0, width, canvas.height - 100);
             
-            ctx.fillStyle = "#8B0000";
-            for (let i = 0; i < canvas.height - 100; i += 25) {
-                for (let j = 0; j < width - 20; j += 45) {
-                    let brickX = side === 'left' ? startX + j : startX + 20 + j;
-                    ctx.fillRect(brickX, i, 40, 20);
+            // Detailní cihlová textura
+            ctx.fillStyle = "#6B1D1D";
+            for (let i = 0; i < canvas.height - 100; i += 22) {
+                let offset = (i / 22) % 2 === 0 ? 0 : 22;
+                for (let j = 0; j < width; j += 44) {
+                    let brickX = startX + j + (side === 'left' ? offset : -offset);
+                    ctx.fillRect(brickX, i, 40, 18);
                 }
             }
 
-            ctx.fillStyle = "#A52A2A";
+            // Stínování okrajů budov pro hloubku
+            ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
             if (side === 'left') {
-                ctx.fillRect(startX + width - 20, 0, 20, canvas.height - 100);
+                ctx.fillRect(startX + width - 15, 0, 15, canvas.height - 100);
             } else {
-                ctx.fillRect(startX, 0, 20, canvas.height - 100);
+                ctx.fillRect(startX, 0, 15, canvas.height - 100);
             }
         }
 
         function drawEnvironment() {
-            ctx.fillStyle = "#2b2b2b";
+            // Noční pozadí ulice
+            ctx.fillStyle = "#12121a";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            ctx.fillStyle = "#7c7c7c";
+            // Chodníky
+            ctx.fillStyle = "#4a4a5e";
             ctx.fillRect(buildingWidth, 0, 30, canvas.height - 100); 
             ctx.fillRect(canvas.width - buildingWidth - 30, 0, 30, canvas.height - 100); 
 
-            drawCleanBrickBuilding(0, buildingWidth, 'left');
-            drawCleanBrickBuilding(canvas.width - buildingWidth, buildingWidth, 'right');
+            drawDetailedBuilding(0, buildingWidth, 'left');
+            drawDetailedBuilding(canvas.width - buildingWidth, buildingWidth, 'right');
 
+            // Vchod do obchodu v pravé budově
             let shopUnlocked = score >= 100;
-            ctx.fillStyle = "#111";
+            ctx.fillStyle = "#0a0a0f";
             ctx.fillRect(canvas.width - buildingWidth + 40, canvas.height - 180, 80, 80);
-            ctx.strokeStyle = shopUnlocked ? "#27ae60" : "#555";
+            ctx.strokeStyle = shopUnlocked ? "#2ecc71" : "#444";
             ctx.lineWidth = 3;
             ctx.strokeRect(canvas.width - buildingWidth + 40, canvas.height - 180, 80, 80);
 
-            ctx.fillStyle = shopUnlocked ? "#27ae60" : "#777";
+            // Svítící nápis shopu
+            ctx.fillStyle = shopUnlocked ? "#2ecc71" : "#666";
             ctx.font = "bold 13px 'Courier New', Courier, monospace";
             ctx.fillText("SHOP", canvas.width - buildingWidth + 60, canvas.height - 135);
 
-            ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+            // Přechody pro chodce (zebry)
+            ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
             let zebraTopY = 195;
             for (let x = buildingWidth + 30; x < canvas.width - buildingWidth - 30; x += 25) {
                 ctx.fillRect(x, zebraTopY, 14, 35);
             }
-
             let zebraBottomY = 415;
             for (let x = buildingWidth + 30; x < canvas.width - buildingWidth - 30; x += 25) {
                 ctx.fillRect(x, zebraBottomY, 14, 35);
             }
 
+            // Středová žlutá čára silnice
             ctx.strokeStyle = "#f1c40f";
             ctx.lineWidth = 4;
             ctx.setLineDash([20, 15]);
@@ -170,27 +178,50 @@
             ctx.stroke();
             ctx.setLineDash([]); 
 
+            // Okna a stříšky domů s teplým podsvícením
             rooms.forEach(r => {
                 if (r.side === 'left') {
-                    ctx.fillStyle = "#d49a4f";
+                    // Stříška okna
+                    ctx.fillStyle = "#d3832c";
                     ctx.fillRect(0, r.y - 15, buildingWidth - 20, 85);
-                    ctx.fillStyle = themeColor;
+                    // Rám okna
+                    ctx.fillStyle = "#1c1c28";
                     ctx.fillRect(buildingWidth - 20, r.y + 20, 20, 50);
+                    // Teplé světlo z okna
+                    ctx.fillStyle = "#ffeaa7";
+                    ctx.fillRect(buildingWidth - 15, r.y + 25, 12, 40);
 
-                    ctx.strokeStyle = themeColor;
-                    ctx.lineWidth = 6;
+                    // Skluzavka / rampy s detailem
+                    ctx.strokeStyle = "#2c2c38";
+                    ctx.lineWidth = 8;
+                    ctx.beginPath();
+                    ctx.moveTo(buildingWidth, r.y + 70);
+                    ctx.lineTo(buildingWidth + 70, r.y + 130);
+                    ctx.stroke();
+
+                    ctx.strokeStyle = "#d3832c";
+                    ctx.lineWidth = 3;
                     ctx.beginPath();
                     ctx.moveTo(buildingWidth, r.y + 70);
                     ctx.lineTo(buildingWidth + 70, r.y + 130);
                     ctx.stroke();
                 } else {
-                    ctx.fillStyle = "#d49a4f";
+                    ctx.fillStyle = "#d3832c";
                     ctx.fillRect(canvas.width - buildingWidth + 20, r.y - 15, buildingWidth - 20, 85);
-                    ctx.fillStyle = themeColor;
+                    ctx.fillStyle = "#1c1c28";
                     ctx.fillRect(canvas.width - buildingWidth, r.y + 20, 20, 50);
+                    ctx.fillStyle = "#ffeaa7";
+                    ctx.fillRect(canvas.width - buildingWidth + 3, r.y + 25, 12, 40);
 
-                    ctx.strokeStyle = themeColor;
-                    ctx.lineWidth = 6;
+                    ctx.strokeStyle = "#2c2c38";
+                    ctx.lineWidth = 8;
+                    ctx.beginPath();
+                    ctx.moveTo(canvas.width - buildingWidth, r.y + 70);
+                    ctx.lineTo(canvas.width - buildingWidth - 70, r.y + 130);
+                    ctx.stroke();
+
+                    ctx.strokeStyle = "#d3832c";
+                    ctx.lineWidth = 3;
                     ctx.beginPath();
                     ctx.moveTo(canvas.width - buildingWidth, r.y + 70);
                     ctx.lineTo(canvas.width - buildingWidth - 70, r.y + 130);
@@ -198,12 +229,13 @@
                 }
             });
 
-            ctx.fillStyle = "#1a1a1a";
+            // Asfaltová silnice dole
+            ctx.fillStyle = "#181822";
             ctx.fillRect(0, canvas.height - 100, canvas.width, 100);
         }
 
         // ==========================================
-        // VYKRESLENÍ KRABIC NA HORNÍ LIŠTĚ
+        // HORNÍ LIŠTA S KOŠÍKY
         // ==========================================
         function drawTopBoxes() {
             let startX = canvas.width / 2 - 165;
@@ -220,25 +252,25 @@
             boxesData.forEach((b, index) => {
                 let x = startX + (index * 115);
                 
-                ctx.fillStyle = activeBox === b.id ? "#2980b9" : (b.unlocked ? "#8e44ad" : "#444");
+                ctx.fillStyle = activeBox === b.id ? "#3498db" : (b.unlocked ? "#9b59b6" : "#2c2c38");
                 ctx.fillRect(x, y + 10, boxWidth, boxHeight - 10);
                 
-                ctx.fillStyle = activeBox === b.id ? "#3498db" : (b.unlocked ? "#9b59b6" : "#555");
+                ctx.fillStyle = activeBox === b.id ? "#5dade2" : (b.unlocked ? "#af7ac5" : "#3b3b4f");
                 ctx.fillRect(x - 4, y, boxWidth + 8, 12);
 
-                ctx.strokeStyle = b.unlocked ? "#f1c40f" : "#666";
+                ctx.strokeStyle = b.unlocked ? "#f1c40f" : "#444";
                 ctx.lineWidth = 2;
                 ctx.strokeRect(x, y + 10, boxWidth, boxHeight - 10);
                 ctx.strokeRect(x - 4, y, boxWidth + 8, 12);
 
-                ctx.fillStyle = b.unlocked ? "#ffffff" : "#888";
+                ctx.fillStyle = b.unlocked ? "#ffffff" : "#777";
                 ctx.font = "bold 12px 'Courier New', Courier, monospace";
                 ctx.fillText(b.name, x + 12, y + 32);
             });
         }
 
         // ==========================================
-        // SEKCE 2: PANÁČEK A OVLÁDÁNÍ
+        // PANÁČEK S PLYNULOU ANIMACÍ POHYBU
         // ==========================================
         const playerImg = new Image();
         playerImg.src = "player.png";
@@ -304,7 +336,7 @@
 
             if (oldIndex !== currentPosIndex) {
                 isMovingEffect = true;
-                animTimer = 10;
+                animTimer = 12; // Delší čas pro plynulejší odpich
             }
         });
 
@@ -322,13 +354,13 @@
 
             if (isShopOpen && !txPending) {
                 // Box 2 (50 PLAY)
-                if (mouseX >= canvas.width / 2 - 270 && mouseX <= canvas.width / 2 - 120 && mouseY >= 210 && mouseY <= 360) {
+                if (mouseX >= canvas.width / 2 - 270 && mouseX <= canvas.width / 2 - 120 && mouseY >= 160 && mouseY <= 335) {
                     if (!unlockedBoxes.box2) {
                         buyBox('box2', 50, 2);
                     }
                 }
-                // Box 3 (100 PLAY)
-                if (mouseX >= canvas.width / 2 - 75 && mouseX <= canvas.width / 2 + 75 && mouseY >= 210 && mouseY <= 360) {
+                // Box 3 (100 PLAY + Podpora rodiny)
+                if (mouseX >= canvas.width / 2 + 110 && mouseX <= canvas.width / 2 + 270 && mouseY >= 160 && mouseY <= 335) {
                     if (!unlockedBoxes.box3) {
                         buyBox('box3', 100, 3);
                     }
@@ -344,15 +376,15 @@
             }
 
             txPending = true;
-            txMessage = "Podepiš transakci na PSG1...";
+            txMessage = "Odesílám transakci...";
 
             setTimeout(() => {
                 playTokenBalance -= price;
                 unlockedBoxes[boxKey] = true;
                 activeBox = boxId;
-                hasCharityNFT = true; // Získá pamětní NFT vozíček
+                if(boxId === 3) familySupported = true;
                 txPending = false;
-                txMessage = "Děkujeme! Podpořeno & NFT Vozíček odemčen ❤️";
+                txMessage = "Děkujeme za obrovskou podporu rodiny! ❤️";
                 playSound('shop');
                 setTimeout(() => { txMessage = ""; }, 3000);
             }, 1500);
@@ -365,11 +397,13 @@
             let renderX = targetPos.x;
             let renderY = targetPos.y;
 
+            // Dynamická animace chůze a pohupování
             if (isMovingEffect) {
                 animTimer--;
-                width += 6;
-                height -= 6;
-                renderY += 4;
+                let bounce = Math.sin(animTimer * 0.8) * 6;
+                width += bounce;
+                height -= bounce;
+                renderY -= bounce / 2;
                 if (animTimer <= 0) isMovingEffect = false;
             }
 
@@ -387,7 +421,7 @@
         }
 
         // ==========================================
-        // SEKCE 3: LILKY, RYCHLOST A PADÁNÍ NA ZEM
+        // LILKY A PADÁNÍ
         // ==========================================
         const lilekImg = new Image();
         lilekImg.src = "lilek.png"; 
@@ -521,13 +555,13 @@
         }
 
         // ==========================================
-        // UI, SHOP, PAUSE A GAME OVER
+        // UI A OBRAZOVKY
         // ==========================================
         function drawUI() {
             ctx.font = "bold 15px 'Courier New', Courier, monospace";
 
-            // Levá budova: Skóre
-            ctx.fillStyle = "rgba(15, 15, 15, 0.85)";
+            // Skóre panel
+            ctx.fillStyle = "rgba(20, 20, 30, 0.9)";
             ctx.beginPath();
             ctx.roundRect(15, 15, 130, 45, 8);
             ctx.fill();
@@ -541,19 +575,18 @@
             ctx.font = "bold 18px 'Courier New', Courier, monospace";
             ctx.fillText(score, 25, 52);
 
-            // Vykreslení krabic nahoře
             drawTopBoxes();
 
-            // Pravá budova: Připojení peněženky / Zůstatek PLAY tokenů
-            ctx.fillStyle = "rgba(15, 15, 15, 0.85)";
+            // Peněženka panel
+            ctx.fillStyle = "rgba(20, 20, 30, 0.9)";
             ctx.beginPath();
             ctx.roundRect(canvas.width - 175, 15, 160, 45, 8);
             ctx.fill();
-            ctx.strokeStyle = isConnected ? "#27ae60" : "#9b59b6";
+            ctx.strokeStyle = isConnected ? "#2ecc71" : "#9b59b6";
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            ctx.fillStyle = isConnected ? "#27ae60" : "#9b59b6";
+            ctx.fillStyle = isConnected ? "#2ecc71" : "#9b59b6";
             ctx.font = "bold 13px 'Courier New', Courier, monospace";
             if (!isConnected) {
                 ctx.fillText("CONNECT WALLET", canvas.width - 165, 42);
@@ -566,21 +599,21 @@
         }
 
         function drawShopScreen() {
-            ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
+            ctx.fillStyle = "rgba(10, 10, 15, 0.95)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             ctx.fillStyle = "#f1c40f";
             ctx.font = "bold 30px 'Courier New', Courier, monospace";
             ctx.textAlign = "center";
-            ctx.fillText("CHARITY PLAY SHOP", canvas.width / 2, 75);
+            ctx.fillText("COMMUNITY SHOP & SUPPORT", canvas.width / 2, 75);
 
             ctx.fillStyle = "#ffffff";
             ctx.font = "14px 'Courier New', Courier, monospace";
-            ctx.fillText("Podpoř rodinu & získej sběratelský NFT Vozíček ❤️", canvas.width / 2, 105);
-            ctx.fillText("Wallet Balance: " + playTokenBalance + " PLAY", canvas.width / 2, 130);
+            ctx.fillText("Odemkni vylepšené košíky a podpoř péči o dceru ❤️", canvas.width / 2, 105);
+            ctx.fillText("Zůstatek v peněžence: " + playTokenBalance + " PLAY", canvas.width / 2, 130);
 
-            // Box 1 (Free - 100 lilků)
-            ctx.fillStyle = "#222";
+            // Box 1 (Free)
+            ctx.fillStyle = "#1c1c28";
             ctx.fillRect(canvas.width / 2 - 270, 160, 160, 175);
             ctx.strokeStyle = "#3498db";
             ctx.strokeRect(canvas.width / 2 - 270, 160, 160, 175);
@@ -589,77 +622,75 @@
             ctx.fillStyle = "#fff";
             ctx.font = "13px 'Courier New', Courier, monospace";
             ctx.fillText("Milestone: 100", canvas.width / 2 - 190, 220);
-            ctx.fillText("Price: 0 PLAY", canvas.width / 2 - 190, 245);
-            ctx.fillStyle = "#27ae60";
-            ctx.fillText("UNLOCKED", canvas.width / 2 - 190, 295);
+            ctx.fillText("Cena: ZDARMA", canvas.width / 2 - 190, 245);
+            ctx.fillStyle = "#2ecc71";
+            ctx.fillText("AKTIVNÍ", canvas.width / 2 - 190, 295);
 
-            // Box 2 (50 PLAY - 250 lilků)
-            ctx.fillStyle = "#222";
+            // Box 2 (50 PLAY)
+            ctx.fillStyle = "#1c1c28";
             ctx.fillRect(canvas.width / 2 - 80, 160, 160, 175);
-            ctx.strokeStyle = unlockedBoxes.box2 ? "#27ae60" : "#f1c40f";
+            ctx.strokeStyle = unlockedBoxes.box2 ? "#2ecc71" : "#f1c40f";
             ctx.strokeRect(canvas.width / 2 - 80, 160, 160, 175);
             ctx.fillStyle = "#f1c40f";
             ctx.font = "14px 'Courier New', Courier, monospace";
             ctx.fillText("250 EGG BOX", canvas.width / 2, 190);
             ctx.fillStyle = "#fff";
             ctx.font = "13px 'Courier New', Courier, monospace";
-            ctx.fillText("Milestone: 250", canvas.width / 2, 220);
-            ctx.fillText("Price: 50 PLAY", canvas.width / 2, 245);
-            ctx.fillStyle = unlockedBoxes.box2 ? "#27ae60" : "#f1c40f";
-            ctx.fillText(unlockedBoxes.box2 ? "ACTIVE" : "BUY (Click)", canvas.width / 2, 295);
+            ctx.fillText("Cena: 50 PLAY", canvas.width / 2, 220);
+            ctx.fillStyle = unlockedBoxes.box2 ? "#2ecc71" : "#f1c40f";
+            ctx.fillText(unlockedBoxes.box2 ? "AKTIVNÍ" : "KOUPIT", canvas.width / 2, 295);
 
-            // Box 3 (100 PLAY - 500 lilků + NFT Vozíček)
-            ctx.fillStyle = "#222";
+            // Box 3 (100 PLAY - Podpora rodiny)
+            ctx.fillStyle = "#1c1c28";
             ctx.fillRect(canvas.width / 2 + 110, 160, 160, 175);
-            ctx.strokeStyle = unlockedBoxes.box3 ? "#27ae60" : "#e74c3c";
+            ctx.strokeStyle = unlockedBoxes.box3 ? "#2ecc71" : "#e74c3c";
             ctx.strokeRect(canvas.width / 2 + 110, 160, 160, 175);
             ctx.fillStyle = "#e74c3c";
             ctx.font = "14px 'Courier New', Courier, monospace";
             ctx.fillText("500 EGG BOX", canvas.width / 2 + 190, 190);
             ctx.fillStyle = "#fff";
             ctx.font = "13px 'Courier New', Courier, monospace";
-            ctx.fillText("Price: 100 PLAY", canvas.width / 2 + 190, 220);
+            ctx.fillText("Cena: 100 PLAY", canvas.width / 2 + 190, 220);
             ctx.fillStyle = "#f1c40f";
-            ctx.fillText("+ NFT Vozíček", canvas.width / 2 + 190, 245);
-            ctx.fillStyle = unlockedBoxes.box3 ? "#27ae60" : "#e74c3c";
-            ctx.fillText(unlockedBoxes.box3 ? "ACTIVE" : "SUPPORT", canvas.width / 2 + 190, 295);
+            ctx.fillText("✨ S podporou", canvas.width / 2 + 190, 245);
+            ctx.fillStyle = unlockedBoxes.box3 ? "#2ecc71" : "#e74c3c";
+            ctx.fillText(unlockedBoxes.box3 ? "AKTIVNÍ" : "PODPOŘIT", canvas.width / 2 + 190, 295);
 
-            // Indikátor vlastnictví NFT
-            if (hasCharityNFT) {
-                ctx.fillStyle = "#27ae60";
+            if (familySupported) {
+                ctx.fillStyle = "#2ecc71";
                 ctx.font = "bold 15px 'Courier New', Courier, monospace";
-                ctx.fillText("🌟 Vlastníte pamětní NFT Vozíček 🌟", canvas.width / 2, 360);
+                ctx.fillText("🌟 Děkujeme za vaši dobrou duši a podporu rodiny! 🌟", canvas.width / 2, 365);
             }
 
             if (txMessage !== "") {
                 ctx.fillStyle = "#e67e22";
                 ctx.font = "bold 16px 'Courier New', Courier, monospace";
-                ctx.fillText(txMessage, canvas.width / 2, 400);
+                ctx.fillText(txMessage, canvas.width / 2, 410);
             }
 
             ctx.fillStyle = "#aaa";
             ctx.font = "13px 'Courier New', Courier, monospace";
-            ctx.fillText("Press ESC or ENTER to return to game", canvas.width / 2, 450);
+            ctx.fillText("Stiskni ESC nebo ENTER pro návrat do hry", canvas.width / 2, 460);
             ctx.textAlign = "start";
         }
 
         function drawPauseScreen() {
-            ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+            ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             ctx.fillStyle = "#f1c40f";
             ctx.font = "bold 45px 'Courier New', Courier, monospace";
             ctx.textAlign = "center";
-            ctx.fillText("PAUSED", canvas.width / 2, canvas.height / 2 - 15);
+            ctx.fillText("PAUSE", canvas.width / 2, canvas.height / 2 - 15);
 
             ctx.fillStyle = "#ffffff";
             ctx.font = "18px 'Courier New', Courier, monospace";
-            ctx.fillText("Press SPACE to resume", canvas.width / 2, canvas.height / 2 + 30);
+            ctx.fillText("Stiskni SPACE pro pokračování", canvas.width / 2, canvas.height / 2 + 30);
             ctx.textAlign = "start";
         }
 
         function drawGameOver() {
-            ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+            ctx.fillStyle = "rgba(10, 10, 15, 0.9)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             ctx.fillStyle = "#ff4d4d";
@@ -669,11 +700,11 @@
 
             ctx.fillStyle = "#ffffff";
             ctx.font = "22px 'Courier New', Courier, monospace";
-            ctx.fillText("Eggplants caught: " + score, canvas.width / 2, canvas.height / 2 + 20);
+            ctx.fillText("Chycených lilků: " + score, canvas.width / 2, canvas.height / 2 + 20);
             
             ctx.fillStyle = "#f1c40f";
             ctx.font = "18px 'Courier New', Courier, monospace";
-            ctx.fillText("Press ENTER to restart", canvas.width / 2, canvas.height / 2 + 70);
+            ctx.fillText("Stiskni ENTER pro restart", canvas.width / 2, canvas.height / 2 + 70);
             ctx.textAlign = "start";
         }
 
@@ -692,7 +723,7 @@
         }
 
         // ==========================================
-        // HLAVNÍ HERNÍ SMYČKA
+        // HLAVNÍ SMYČKA
         // ==========================================
         function gameLoop() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
