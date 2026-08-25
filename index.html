@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Egg & Lilek - PSG1 Deluxe Edition</title>
+    <title>Egg & Lilek - PSG1 Deluxe Edition (Baskets Update)</title>
     <style>
         body { 
             margin: 0; 
@@ -28,7 +28,7 @@
         const ctx = canvas.getContext("2d");
 
         // ==========================================
-        // WEB3 & SOLANA / PSG1 STATE
+        // WEB3 & PSG1 STATE
         // ==========================================
         let isConnected = false;
         let walletAddress = "";
@@ -37,7 +37,7 @@
         const FREE_TRIAL_LIMIT = 50;
 
         // ==========================================
-        // WEB AUDIO API (SOUND & INTRO MUSIC)
+        // WEB AUDIO API (SOUNDS)
         // ==========================================
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         let backgroundMusicInterval = null;
@@ -55,12 +55,12 @@
 
             if (type === 'catch') {
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(450, now);
-                osc.frequency.exponentialRampToValueAtTime(850, now + 0.1);
-                gain.gain.setValueAtTime(0.15, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.frequency.setValueAtTime(500, now);
+                osc.frequency.exponentialRampToValueAtTime(950, now + 0.12);
+                gain.gain.setValueAtTime(0.18, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
                 osc.start(now);
-                osc.stop(now + 0.1);
+                osc.stop(now + 0.12);
             } else if (type === 'drop') {
                 osc.type = 'triangle';
                 osc.frequency.setValueAtTime(140, now);
@@ -104,7 +104,7 @@
                 let now = audioCtx.currentTime;
                 osc.type = 'triangle';
                 osc.frequency.setValueAtTime(notes[index], now);
-                gain.gain.setValueAtTime(0.08, now);
+                gain.gain.setValueAtTime(0.06, now);
                 gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
                 
                 osc.start(now);
@@ -115,7 +115,7 @@
         }
 
         // ==========================================
-        // GAME STATES & ENVIRONMENT
+        // GAME ENVIRONMENT
         // ==========================================
         let gameStarted = false;
         const buildingWidth = 220;
@@ -130,11 +130,12 @@
         let isShopOpen = false;
         let shopTriggered = false; 
         let unlockedBoxes = { box1: true, box2: false, box3: false };
-        let activeBox = 1;
+        let activeBox = 1; // 1: Základní bedýnka, 2: 250 EGG Box, 3: 500 EGG Box
         let familySupported = false; 
 
         let txPending = false;
         let txMessage = "";
+        let catchAnimFrames = 0; // Efekt nadskočení košíku při chycení
 
         function drawDetailedBuilding(startX, width, side) {
             ctx.fillStyle = "#8E2828";
@@ -284,7 +285,7 @@
         }
 
         // ==========================================
-        // PLAYER & CONTROLS
+        // PLAYER & DYNAMIC BASKETS
         // ==========================================
         const playerImg = new Image();
         playerImg.src = "player.png";
@@ -303,25 +304,19 @@
         let lives = 3;
         let isGameOver = false;
         let isPaused = false;
+        let idleBreathTimer = 0;
 
         window.addEventListener("keydown", (e) => {
             startBackgroundMusic();
-
-            if (!gameStarted) {
-                return;
-            }
+            if (!gameStarted) return;
 
             if (isGameOver) {
-                if (e.key === "Enter" || e.code === "Space") {
-                    restartGame();
-                }
+                if (e.key === "Enter" || e.code === "Space") restartGame();
                 return;
             }
 
             if (isShopOpen) {
-                if (!txPending && (e.key === "Escape" || e.key === "Enter")) {
-                    isShopOpen = false;
-                }
+                if (!txPending && (e.key === "Escape" || e.key === "Enter")) isShopOpen = false;
                 return;
             }
 
@@ -364,7 +359,6 @@
             let mouseY = e.clientY - rect.top;
 
             if (!gameStarted) {
-                // Tlačítko 1: Connect Wallet (Levé tlačítko)
                 if (mouseX >= canvas.width / 2 - 240 && mouseX <= canvas.width / 2 - 20 && mouseY >= canvas.height / 2 + 20 && mouseY <= canvas.height / 2 + 80) {
                     isConnected = true;
                     walletAddress = "PSG1...9xK4";
@@ -373,7 +367,6 @@
                     playSound('shop');
                     return;
                 }
-                // Tlačítko 2: Free Trial (Pravé tlačítko)
                 if (mouseX >= canvas.width / 2 + 20 && mouseX <= canvas.width / 2 + 240 && mouseY >= canvas.height / 2 + 20 && mouseY <= canvas.height / 2 + 80) {
                     freeTrialMode = true;
                     gameStarted = true;
@@ -393,9 +386,11 @@
             if (isShopOpen && !txPending) {
                 if (mouseX >= canvas.width / 2 - 270 && mouseX <= canvas.width / 2 - 120 && mouseY >= 160 && mouseY <= 335) {
                     if (!unlockedBoxes.box2) buyBox('box2', 50, 2);
+                    else activeBox = 2;
                 }
                 if (mouseX >= canvas.width / 2 + 110 && mouseX <= canvas.width / 2 + 270 && mouseY >= 160 && mouseY <= 335) {
                     if (!unlockedBoxes.box3) buyBox('box3', 100, 3);
+                    else activeBox = 3;
                 }
             }
         });
@@ -416,18 +411,23 @@
                 activeBox = boxId;
                 if(boxId === 3) familySupported = true;
                 txPending = false;
-                txMessage = "Thank you for your generous family support! ❤️";
+                txMessage = "Successfully unlocked & equipped box! ❤️";
                 playSound('shop');
                 setTimeout(() => { txMessage = ""; }, 3000);
             }, 1500);
         }
 
-        function drawPlayer() {
+        function drawPlayerWithBasket() {
             let targetPos = positions[currentPosIndex];
             let width = 45;
             let height = 65;
             let renderX = targetPos.x;
             let renderY = targetPos.y;
+
+            // Efekt dýchání / mírného pohupování v klidu
+            idleBreathTimer += 0.08;
+            let breathOffset = Math.sin(idleBreathTimer) * 2;
+            renderY += breathOffset;
 
             if (isMovingEffect) {
                 animTimer--;
@@ -445,9 +445,53 @@
                 ctx.translate(-(renderX + width / 2), -(renderY + height / 2));
             }
 
+            // Nakreslení panáčka
             if (playerImg.complete) {
                 ctx.drawImage(playerImg, renderX, renderY, width, height);
             }
+
+            // Kreslení bedýnky (košíku) před panáčkem
+            if (catchAnimFrames > 0) catchAnimFrames--;
+            let basketBounce = catchAnimFrames > 0 ? -6 : 0;
+
+            let basketX = targetPos.side === 'left' ? renderX + 22 : renderX - 18;
+            let basketY = renderY + 32 + basketBounce;
+
+            // Design bedýnky závisí na activeBox
+            if (activeBox === 1) {
+                // Klasická dřevěná bedýnka
+                ctx.fillStyle = "#8e44ad";
+                ctx.fillRect(basketX, basketY, 32, 22);
+                ctx.strokeStyle = "#f1c40f";
+                ctx.lineWidth = 2;
+                ctx.strokeRect(basketX, basketY, 32, 22);
+                // Detail mřížky
+                ctx.fillStyle = "#512e5f";
+                ctx.fillRect(basketX + 4, basketY + 4, 8, 14);
+                ctx.fillRect(basketX + 20, basketY + 4, 8, 14);
+            } else if (activeBox === 2) {
+                // Pokročilý zlatý / stříbrný košík (250 EGG)
+                ctx.fillStyle = "#27ae60";
+                ctx.fillRect(basketX - 2, basketY - 2, 36, 25);
+                ctx.strokeStyle = "#f39c12";
+                ctx.lineWidth = 3;
+                ctx.strokeRect(basketX - 2, basketY - 2, 36, 25);
+                // Lesk
+                ctx.fillStyle = "#2ecc71";
+                ctx.fillRect(basketX + 4, basketY + 4, 24, 6);
+            } else if (activeBox === 3) {
+                // Luxusní VIP Podpůrná bedýnka (500 EGG)
+                ctx.fillStyle = "#c0392b";
+                ctx.fillRect(basketX - 4, basketY - 4, 40, 28);
+                ctx.strokeStyle = "#f1c40f";
+                ctx.lineWidth = 3;
+                ctx.strokeRect(basketX - 4, basketY - 4, 40, 28);
+                // Srdíčko / hvězdička na bedýnce
+                ctx.fillStyle = "#f1c40f";
+                ctx.font = "10px sans-serif";
+                ctx.fillText("⭐", basketX + 12, basketY + 14);
+            }
+
             ctx.restore();
         }
 
@@ -516,13 +560,15 @@
                         l.y = rampStartY + (progress * 60) - 6;
                         l.angle += l.isLeft ? 0.06 : -0.06;
 
+                        // Detekce chycení do bedýnky
                         let targetPos = positions[l.roomIndex];
-                        let catchAreaX = targetPos.x + 15;
-                        let catchAreaY = targetPos.y + 20;
+                        let catchAreaX = targetPos.x + (targetPos.side === 'left' ? 35 : 15);
+                        let catchAreaY = targetPos.y + 45;
                         let distance = Math.hypot(l.x - catchAreaX, l.y - catchAreaY);
 
-                        if (distance < 32 && currentPosIndex === l.roomIndex) {
+                        if (distance < 35 && currentPosIndex === l.roomIndex) {
                             playSound('catch'); 
+                            catchAnimFrames = 8; // Spustí efekt nadskočení bedýnky
                             lilky.splice(i, 1); 
                             score++;
                             baseSpeed = 0.5 + (score * 0.01); 
@@ -606,7 +652,6 @@
             ctx.font = "bold 18px 'Courier New', Courier, monospace";
             ctx.fillText("PSG1 DELUXE EDITION", canvas.width / 2, canvas.height / 2 - 50);
 
-            // Tlačítko 1: Connect Wallet
             ctx.fillStyle = "#2ecc71";
             ctx.fillRect(canvas.width / 2 - 240, canvas.height / 2 + 20, 220, 60);
             ctx.strokeStyle = "#ffffff";
@@ -619,7 +664,6 @@
             ctx.font = "11px 'Courier New', Courier, monospace";
             ctx.fillText("(Full Web3 Experience)", canvas.width / 2 - 130, canvas.height / 2 + 65);
 
-            // Tlačítko 2: Free Trial (50 Eggplants)
             ctx.fillStyle = "#9b59b6";
             ctx.fillRect(canvas.width / 2 + 20, canvas.height / 2 + 20, 220, 60);
             ctx.strokeStyle = "#ffffff";
@@ -685,16 +729,17 @@
             ctx.fillStyle = "#f1c40f";
             ctx.font = "bold 30px 'Courier New', Courier, monospace";
             ctx.textAlign = "center";
-            ctx.fillText("COMMUNITY SHOP & SUPPORT", canvas.width / 2, 75);
+            ctx.fillText("COMMUNITY SHOP & BASKETS", canvas.width / 2, 75);
 
             ctx.fillStyle = "#ffffff";
             ctx.font = "14px 'Courier New', Courier, monospace";
-            ctx.fillText("Unlock upgraded baskets & support family care ❤️", canvas.width / 2, 105);
+            ctx.fillText("Equip upgraded baskets & support family care ❤️", canvas.width / 2, 105);
             ctx.fillText("Wallet Balance: " + playTokenBalance + " PLAY", canvas.width / 2, 130);
 
+            // Box 1
             ctx.fillStyle = "#1c1c28";
             ctx.fillRect(canvas.width / 2 - 270, 160, 160, 175);
-            ctx.strokeStyle = "#3498db";
+            ctx.strokeStyle = activeBox === 1 ? "#2ecc71" : "#3498db";
             ctx.strokeRect(canvas.width / 2 - 270, 160, 160, 175);
             ctx.fillStyle = "#3498db";
             ctx.fillText("100 EGG BOX", canvas.width / 2 - 190, 190);
@@ -702,12 +747,13 @@
             ctx.font = "13px 'Courier New', Courier, monospace";
             ctx.fillText("Milestone: 100", canvas.width / 2 - 190, 220);
             ctx.fillText("Price: FREE", canvas.width / 2 - 190, 245);
-            ctx.fillStyle = "#2ecc71";
-            ctx.fillText("ACTIVE", canvas.width / 2 - 190, 295);
+            ctx.fillStyle = activeBox === 1 ? "#2ecc71" : "#fff";
+            ctx.fillText(activeBox === 1 ? "EQUIPPED" : "SELECT", canvas.width / 2 - 190, 295);
 
+            // Box 2
             ctx.fillStyle = "#1c1c28";
             ctx.fillRect(canvas.width / 2 - 80, 160, 160, 175);
-            ctx.strokeStyle = unlockedBoxes.box2 ? "#2ecc71" : "#f1c40f";
+            ctx.strokeStyle = activeBox === 2 ? "#2ecc71" : (unlockedBoxes.box2 ? "#3498db" : "#f1c40f");
             ctx.strokeRect(canvas.width / 2 - 80, 160, 160, 175);
             ctx.fillStyle = "#f1c40f";
             ctx.font = "14px 'Courier New', Courier, monospace";
@@ -715,12 +761,13 @@
             ctx.fillStyle = "#fff";
             ctx.font = "13px 'Courier New', Courier, monospace";
             ctx.fillText("Price: 50 PLAY", canvas.width / 2, 220);
-            ctx.fillStyle = unlockedBoxes.box2 ? "#2ecc71" : "#f1c40f";
-            ctx.fillText(unlockedBoxes.box2 ? "ACTIVE" : "BUY NOW", canvas.width / 2, 295);
+            ctx.fillStyle = activeBox === 2 ? "#2ecc71" : (unlockedBoxes.box2 ? "#3498db" : "#f1c40f");
+            ctx.fillText(activeBox === 2 ? "EQUIPPED" : (unlockedBoxes.box2 ? "EQUIP" : "BUY NOW"), canvas.width / 2, 295);
 
+            // Box 3
             ctx.fillStyle = "#1c1c28";
             ctx.fillRect(canvas.width / 2 + 110, 160, 160, 175);
-            ctx.strokeStyle = unlockedBoxes.box3 ? "#2ecc71" : "#e74c3c";
+            ctx.strokeStyle = activeBox === 3 ? "#2ecc71" : (unlockedBoxes.box3 ? "#3498db" : "#e74c3c");
             ctx.strokeRect(canvas.width / 2 + 110, 160, 160, 175);
             ctx.fillStyle = "#e74c3c";
             ctx.font = "14px 'Courier New', Courier, monospace";
@@ -730,8 +777,8 @@
             ctx.fillText("Price: 100 PLAY", canvas.width / 2 + 190, 220);
             ctx.fillStyle = "#f1c40f";
             ctx.fillText("✨ Supported", canvas.width / 2 + 190, 245);
-            ctx.fillStyle = unlockedBoxes.box3 ? "#2ecc71" : "#e74c3c";
-            ctx.fillText(unlockedBoxes.box3 ? "ACTIVE" : "SUPPORT", canvas.width / 2 + 190, 295);
+            ctx.fillStyle = activeBox === 3 ? "#2ecc71" : (unlockedBoxes.box3 ? "#3498db" : "#e74c3c");
+            ctx.fillText(activeBox === 3 ? "EQUIPPED" : (unlockedBoxes.box3 ? "EQUIP" : "SUPPORT"), canvas.width / 2 + 190, 295);
 
             if (familySupported) {
                 ctx.fillStyle = "#2ecc71";
@@ -818,7 +865,7 @@
 
             if (isGameOver) {
                 updateAndDrawLilky();
-                drawPlayer();
+                drawPlayerWithBasket();
                 drawUI();
                 drawGameOver();
                 requestAnimationFrame(gameLoop);
@@ -833,7 +880,7 @@
 
             if (isPaused) {
                 updateAndDrawLilky(); 
-                drawPlayer();
+                drawPlayerWithBasket();
                 drawUI();
                 drawPauseScreen();
                 requestAnimationFrame(gameLoop);
@@ -841,7 +888,7 @@
             }
 
             updateAndDrawLilky();
-            drawPlayer();      
+            drawPlayerWithBasket();      
             drawUI();
 
             requestAnimationFrame(gameLoop);
