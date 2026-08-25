@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Egg & Lilek - PSG1 Deluxe Edition (Baskets Update)</title>
+    <title>Egg & Lilek - PSG1 Deluxe Edition (Smart Basket Update)</title>
     <style>
         body { 
             margin: 0; 
@@ -130,12 +130,12 @@
         let isShopOpen = false;
         let shopTriggered = false; 
         let unlockedBoxes = { box1: true, box2: false, box3: false };
-        let activeBox = 1; // 1: Základní bedýnka, 2: 250 EGG Box, 3: 500 EGG Box
+        let activeBox = 1; 
         let familySupported = false; 
 
         let txPending = false;
         let txMessage = "";
-        let catchAnimFrames = 0; // Efekt nadskočení košíku při chycení
+        let catchAnimFrames = 0; 
 
         function drawDetailedBuilding(startX, width, side) {
             ctx.fillStyle = "#8E2828";
@@ -285,7 +285,7 @@
         }
 
         // ==========================================
-        // PLAYER & DYNAMIC BASKETS
+        // PLAYER & DYNAMIC SMART BASKETS
         // ==========================================
         const playerImg = new Image();
         playerImg.src = "player.png";
@@ -424,7 +424,6 @@
             let renderX = targetPos.x;
             let renderY = targetPos.y;
 
-            // Efekt dýchání / mírného pohupování v klidu
             idleBreathTimer += 0.08;
             let breathOffset = Math.sin(idleBreathTimer) * 2;
             renderY += breathOffset;
@@ -445,48 +444,40 @@
                 ctx.translate(-(renderX + width / 2), -(renderY + height / 2));
             }
 
-            // Nakreslení panáčka
             if (playerImg.complete) {
                 ctx.drawImage(playerImg, renderX, renderY, width, height);
             }
 
-            // Kreslení bedýnky (košíku) před panáčkem
             if (catchAnimFrames > 0) catchAnimFrames--;
             let basketBounce = catchAnimFrames > 0 ? -6 : 0;
 
-            let basketX = targetPos.side === 'left' ? renderX + 22 : renderX - 18;
-            let basketY = renderY + 32 + basketBounce;
+            // SMART KOŠÍK: Pokud je postava vlevo, košík je vpravo od postavy (blíže k rampě). Pokud je vpravo, košík se přehodí doleva k rampě.
+            let basketX = targetPos.side === 'left' ? renderX + 25 : renderX - 12;
+            let basketY = renderY + 30 + basketBounce;
 
-            // Design bedýnky závisí na activeBox
             if (activeBox === 1) {
-                // Klasická dřevěná bedýnka
                 ctx.fillStyle = "#8e44ad";
                 ctx.fillRect(basketX, basketY, 32, 22);
                 ctx.strokeStyle = "#f1c40f";
                 ctx.lineWidth = 2;
                 ctx.strokeRect(basketX, basketY, 32, 22);
-                // Detail mřížky
                 ctx.fillStyle = "#512e5f";
                 ctx.fillRect(basketX + 4, basketY + 4, 8, 14);
                 ctx.fillRect(basketX + 20, basketY + 4, 8, 14);
             } else if (activeBox === 2) {
-                // Pokročilý zlatý / stříbrný košík (250 EGG)
                 ctx.fillStyle = "#27ae60";
                 ctx.fillRect(basketX - 2, basketY - 2, 36, 25);
                 ctx.strokeStyle = "#f39c12";
                 ctx.lineWidth = 3;
                 ctx.strokeRect(basketX - 2, basketY - 2, 36, 25);
-                // Lesk
                 ctx.fillStyle = "#2ecc71";
                 ctx.fillRect(basketX + 4, basketY + 4, 24, 6);
             } else if (activeBox === 3) {
-                // Luxusní VIP Podpůrná bedýnka (500 EGG)
                 ctx.fillStyle = "#c0392b";
                 ctx.fillRect(basketX - 4, basketY - 4, 40, 28);
                 ctx.strokeStyle = "#f1c40f";
                 ctx.lineWidth = 3;
                 ctx.strokeRect(basketX - 4, basketY - 4, 40, 28);
-                // Srdíčko / hvězdička na bedýnce
                 ctx.fillStyle = "#f1c40f";
                 ctx.font = "10px sans-serif";
                 ctx.fillText("⭐", basketX + 12, basketY + 14);
@@ -560,15 +551,15 @@
                         l.y = rampStartY + (progress * 60) - 6;
                         l.angle += l.isLeft ? 0.06 : -0.06;
 
-                        // Detekce chycení do bedýnky
+                        // Dokonale přesná detekce pro chycení do chytrého košíku na konci rampy
                         let targetPos = positions[l.roomIndex];
-                        let catchAreaX = targetPos.x + (targetPos.side === 'left' ? 35 : 15);
+                        let catchAreaX = targetPos.side === 'left' ? targetPos.x + 40 : targetPos.x + 5;
                         let catchAreaY = targetPos.y + 45;
                         let distance = Math.hypot(l.x - catchAreaX, l.y - catchAreaY);
 
-                        if (distance < 35 && currentPosIndex === l.roomIndex) {
+                        if (distance < 32 && currentPosIndex === l.roomIndex) {
                             playSound('catch'); 
-                            catchAnimFrames = 8; // Spustí efekt nadskočení bedýnky
+                            catchAnimFrames = 8; 
                             lilky.splice(i, 1); 
                             score++;
                             baseSpeed = 0.5 + (score * 0.01); 
