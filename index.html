@@ -356,7 +356,7 @@
             }, 1500);
         }
 
-        function drawPlayerWithBasket() {
+       function drawPlayerWithBasket() {
             let targetPos = positions[currentPosIndex];
             let width = 45;
             let height = 65;
@@ -374,7 +374,7 @@
             }
 
             ctx.save();
-            // Pokud stojí vlevo, je otočený doprava (ke středu). Pokud vpravo, je otočený doleva (ke středu).
+            // Otočení postavičky směrem ke středu
             if (targetPos.side === 'left') {
                 ctx.translate(renderX + width / 2, renderY + height / 2);
                 ctx.scale(-1, 1);
@@ -389,8 +389,8 @@
             if (catchAnimFrames > 0) catchAnimFrames--;
             let basketBounce = catchAnimFrames > 0 ? -6 : 0;
 
-            // Košík je vždy na straně směrem do středu, kam padají lilky z rampy
-            let basketX = targetPos.side === 'left' ? renderX + 32 : renderX - 20;
+            // Zde opraveno: Krabice je teď správně otočená na stranu do středu (před postavičku)
+            let basketX = targetPos.side === 'left' ? renderX - 22 : renderX + 32;
             let basketY = renderY + 28 + basketBounce;
 
             if (activeBox === 1) {
