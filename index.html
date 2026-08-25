@@ -248,11 +248,12 @@
         const playerImg = new Image();
         playerImg.src = "player.png";
 
+        // Posunuto víc do středu k rampám (x souřadnice upraveny)
         const positions = [
-            { x: buildingWidth - 10, y: 145, roomIndex: 0, side: 'left' },  
-            { x: buildingWidth - 10, y: 365, roomIndex: 1, side: 'left' },  
-            { x: canvas.width - buildingWidth - 30, y: 145, roomIndex: 2, side: 'right' }, 
-            { x: canvas.width - buildingWidth - 30, y: 365, roomIndex: 3, side: 'right' }  
+            { x: buildingWidth + 35, y: 145, roomIndex: 0, side: 'left' },  
+            { x: buildingWidth + 35, y: 365, roomIndex: 1, side: 'left' },  
+            { x: canvas.width - buildingWidth - 80, y: 145, roomIndex: 2, side: 'right' }, 
+            { x: canvas.width - buildingWidth - 80, y: 365, roomIndex: 3, side: 'right' }  
         ];
 
         let currentPosIndex = 1;
@@ -387,7 +388,7 @@
             if (catchAnimFrames > 0) catchAnimFrames--;
             let basketBounce = catchAnimFrames > 0 ? -6 : 0;
 
-            let basketX = targetPos.side === 'left' ? renderX - 15 : renderX + 30;
+            let basketX = targetPos.side === 'left' ? renderX + 35 : renderX - 22;
             let basketY = renderY + 28 + basketBounce;
 
             if (activeBox === 1) {
