@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Egg & Lilek - PSG1 Deluxe Edition (Smart Basket Update)</title>
+    <title>Egg & Lilek - PSG1 Deluxe Edition (Perfect Alignment Fix)</title>
     <style>
         body { 
             margin: 0; 
@@ -290,11 +290,12 @@
         const playerImg = new Image();
         playerImg.src = "player.png";
 
+        // Perfektně pozicované na konci rampy (mimo samotnou rampu, tak akorát na plošince dole)
         const positions = [
-            { x: buildingWidth + 50, y: 155, roomIndex: 0, side: 'left' },  
-            { x: buildingWidth + 50, y: 375, roomIndex: 1, side: 'left' },  
-            { x: canvas.width - buildingWidth - 95, y: 155, roomIndex: 2, side: 'right' }, 
-            { x: canvas.width - buildingWidth - 95, y: 375, roomIndex: 3, side: 'right' }  
+            { x: buildingWidth + 45, y: 155, roomIndex: 0, side: 'left' },  
+            { x: buildingWidth + 45, y: 375, roomIndex: 1, side: 'left' },  
+            { x: canvas.width - buildingWidth - 90, y: 155, roomIndex: 2, side: 'right' }, 
+            { x: canvas.width - buildingWidth - 90, y: 375, roomIndex: 3, side: 'right' }  
         ];
 
         let currentPosIndex = 1;
@@ -438,6 +439,7 @@
             }
 
             ctx.save();
+            // Pokud je postava na pravé straně, otočíme postavičku doleva
             if (targetPos.side === 'right') {
                 ctx.translate(renderX + width / 2, renderY + height / 2);
                 ctx.scale(-1, 1);
@@ -447,12 +449,13 @@
             if (playerImg.complete) {
                 ctx.drawImage(playerImg, renderX, renderY, width, height);
             }
+            ctx.restore(); // Obnovíme kontext před kreslením košíku, aby košík používal čisté absolutní souřadnice a neplaval
 
             if (catchAnimFrames > 0) catchAnimFrames--;
             let basketBounce = catchAnimFrames > 0 ? -6 : 0;
 
-            // SMART KOŠÍK: Pokud je postava vlevo, košík je vpravo od postavy (blíže k rampě). Pokud je vpravo, košík se přehodí doleva k rampě.
-            let basketX = targetPos.side === 'left' ? renderX + 25 : renderX - 12;
+            // CHYTRÝ KOŠÍK: Bezpečně vypočítaný podle strany, kde panáček stojí, aby byl vždy na vnější straně u konce rampy
+            let basketX = targetPos.side === 'left' ? renderX + 32 : renderX - 18;
             let basketY = renderY + 30 + basketBounce;
 
             if (activeBox === 1) {
@@ -482,8 +485,6 @@
                 ctx.font = "10px sans-serif";
                 ctx.fillText("⭐", basketX + 12, basketY + 14);
             }
-
-            ctx.restore();
         }
 
         // ==========================================
@@ -551,13 +552,13 @@
                         l.y = rampStartY + (progress * 60) - 6;
                         l.angle += l.isLeft ? 0.06 : -0.06;
 
-                        // Dokonale přesná detekce pro chycení do chytrého košíku na konci rampy
+                        // Přesná detekce chycení v košíku na konci rampy
                         let targetPos = positions[l.roomIndex];
-                        let catchAreaX = targetPos.side === 'left' ? targetPos.x + 40 : targetPos.x + 5;
+                        let catchAreaX = targetPos.side === 'left' ? targetPos.x + 48 : targetPos.x - 2;
                         let catchAreaY = targetPos.y + 45;
                         let distance = Math.hypot(l.x - catchAreaX, l.y - catchAreaY);
 
-                        if (distance < 32 && currentPosIndex === l.roomIndex) {
+                        if (distance < 35 && currentPosIndex === l.roomIndex) {
                             playSound('catch'); 
                             catchAnimFrames = 8; 
                             lilky.splice(i, 1); 
@@ -832,9 +833,7 @@
             baseSpeed = 0.5;
             lilky = [];
             spawnCounter = 0;
-            isGameOver = false;
-            isPaused = false;
-            isShopOpen = false;
+            isGameOver, isPaused, isShopOpen = false, false, false;
             shopTriggered = false;
             unlockedBoxes = { box1: true, box2: false, box3: false };
             activeBox = 1;
