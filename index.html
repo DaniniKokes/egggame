@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Egg & Lilek - PSG1 Deluxe Edition (Exact Ramp Alignment)</title>
+    <title>Egg & Lilek - PSG1 Deluxe Edition (Full Version)</title>
     <style>
         body { 
             margin: 0; 
@@ -217,9 +217,7 @@
 
             ctx.fillStyle = "#181822";
             ctx.fillRect(0, canvas.height - 100, canvas.width, 100);
-        }
-
-        function drawTopBoxes() {
+        }function drawTopBoxes() {
             let startX = canvas.width / 2 - 165;
             let boxWidth = 100;
             let boxHeight = 45;
@@ -248,7 +246,6 @@
         const playerImg = new Image();
         playerImg.src = "player.png";
 
-        // OPRAVENO: Přesné přisazení k rampám (panáček stojí u okraje rampy, tělem směřuje správně ven/dovnitř)
         const positions = [
             { x: buildingWidth + 15, y: 145, roomIndex: 0, side: 'left' },  
             { x: buildingWidth + 15, y: 365, roomIndex: 1, side: 'left' },  
@@ -388,7 +385,6 @@
             if (catchAnimFrames > 0) catchAnimFrames--;
             let basketBounce = catchAnimFrames > 0 ? -6 : 0;
 
-            // Správné umístění košíku přesně na konci rampy
             let basketX = targetPos.side === 'left' ? renderX + 35 : renderX - 22;
             let basketY = renderY + 28 + basketBounce;
 
@@ -416,9 +412,7 @@
                 ctx.font = "10px sans-serif";
                 ctx.fillText("⭐", basketX + 12, basketY + 14);
             }
-        }
-
-        const lilekImg = new Image();
+        }const lilekImg = new Image();
         lilekImg.src = "lilek.png"; 
 
         let lilky = [];
@@ -585,14 +579,12 @@
             ctx.fillStyle = "#ffffff"; ctx.font = "14px 'Courier New', Courier, monospace";
             ctx.fillText("Equip upgraded baskets & support family care ❤️", canvas.width / 2, 105);
 
-            // Box 1
             ctx.fillStyle = "#1c1c28"; ctx.fillRect(canvas.width / 2 - 270, 160, 160, 175);
             ctx.strokeStyle = activeBox === 1 ? "#2ecc71" : "#3498db"; ctx.strokeRect(canvas.width / 2 - 270, 160, 160, 175);
             ctx.fillStyle = "#3498db"; ctx.fillText("100 EGG BOX", canvas.width / 2 - 190, 190);
             ctx.fillStyle = "#fff"; ctx.fillText("Price: FREE", canvas.width / 2 - 190, 245);
             ctx.fillStyle = activeBox === 1 ? "#2ecc71" : "#fff"; ctx.fillText(activeBox === 1 ? "EQUIPPED" : "SELECT", canvas.width / 2 - 190, 295);
 
-            // Box 2
             ctx.fillStyle = "#1c1c28"; ctx.fillRect(canvas.width / 2 - 80, 160, 160, 175);
             ctx.strokeStyle = activeBox === 2 ? "#2ecc71" : (unlockedBoxes.box2 ? "#3498db" : "#f1c40f"); ctx.strokeRect(canvas.width / 2 - 80, 160, 160, 175);
             ctx.fillStyle = "#f1c40f"; ctx.fillText("250 EGG BOX", canvas.width / 2, 190);
@@ -600,7 +592,6 @@
             ctx.fillStyle = activeBox === 2 ? "#2ecc71" : (unlockedBoxes.box2 ? "#3498db" : "#f1c40f");
             ctx.fillText(activeBox === 2 ? "EQUIPPED" : (unlockedBoxes.box2 ? "EQUIP" : "BUY NOW"), canvas.width / 2, 295);
 
-            // Box 3
             ctx.fillStyle = "#1c1c28"; ctx.fillRect(canvas.width / 2 + 110, 160, 160, 175);
             ctx.strokeStyle = activeBox === 3 ? "#2ecc71" : (unlockedBoxes.box3 ? "#3498db" : "#e74c3c"); ctx.strokeRect(canvas.width / 2 + 110, 160, 160, 175);
             ctx.fillStyle = "#e74c3c"; ctx.fillText("500 EGG BOX", canvas.width / 2 + 190, 190);
