@@ -387,7 +387,7 @@
             if (catchAnimFrames > 0) catchAnimFrames--;
             let basketBounce = catchAnimFrames > 0 ? -6 : 0;
 
-            let basketX = targetPos.side === 'left' ? renderX + 35 : renderX - 22;
+            let basketX = targetPos.side === 'left' ? renderX - 15 : renderX + 30;
             let basketY = renderY + 28 + basketBounce;
 
             if (activeBox === 1) {
