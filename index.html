@@ -129,24 +129,24 @@
         }
         playerImg.onload = preparePlayerImage;
 
-        // Pozice pater pro běh lilků po podlaze v budovách
+        // Opravená výška horních a dolních pater přímo na podlahy budov
         const rooms = [
-            { id: 0, side: 'left',  y: 235, startX: 60,  endX: 310 }, // Horní patro vlevo
-            { id: 1, side: 'left',  y: 390, startX: 60,  endX: 310 }, // Dolní patro vlevo
-            { id: 2, side: 'right', y: 235, startX: 840, endX: 590 }, // Horní patro vpravo
-            { id: 3, side: 'right', y: 390, startX: 840, endX: 590 }  // Dolní patro vpravo
+            { id: 0, side: 'left',  y: 205, startX: 70,  endX: 305 }, // Horní patro vlevo
+            { id: 1, side: 'left',  y: 355, startX: 70,  endX: 305 }, // Dolní patro vlevo (opraveno!)
+            { id: 2, side: 'right', y: 205, startX: 830, endX: 595 }, // Horní patro vpravo
+            { id: 3, side: 'right', y: 355, startX: 830, endX: 595 }  // Dolní patro vpravo (opraveno!)
         ];
 
-        // Definované pozice, kam se může panáček pohybovat (včetně silnice dole)
+        // Pozice panáčka přesně u balkonů a dole na silnici
         const positions = [
-            { x: 310, y: 195, side: 'left', type: 'balcony' },  
-            { x: 310, y: 350, side: 'left', type: 'balcony' },  
-            { x: 545, y: 195, side: 'right', type: 'balcony' }, 
-            { x: 545, y: 350, side: 'right', type: 'balcony' }, 
-            { x: 450, y: 495, side: 'center', type: 'road' }   // Startovní pozice na silnici uprostřed
+            { x: 315, y: 180, side: 'left' },  
+            { x: 315, y: 330, side: 'left' },  
+            { x: 540, y: 180, side: 'right' }, 
+            { x: 540, y: 330, side: 'right' }, 
+            { x: 450, y: 495, side: 'center' }   // Silnice
         ];
 
-        let currentPosIndex = 4; // Začíná na silnici uprostřed!
+        let currentPosIndex = 4; // Start na silnici
         let score = 0;
         let lives = 3;
         let isGameOver = false;
@@ -213,16 +213,15 @@
             }
             if (isPaused) return;
 
-            // Logika přepínání šipkami (ze silnice jde jet nahoru na dolní patra)
             if (e.key === "ArrowUp") {
-                if (currentPosIndex === 4) currentPosIndex = 1; // Ze silnice na levé dolní
+                if (currentPosIndex === 4) currentPosIndex = 1;
                 else if (currentPosIndex === 1) currentPosIndex = 0;
                 else if (currentPosIndex === 3) currentPosIndex = 2;
             }
             if (e.key === "ArrowDown") {
                 if (currentPosIndex === 0) currentPosIndex = 1;
                 else if (currentPosIndex === 2) currentPosIndex = 3;
-                else if (currentPosIndex === 1 || currentPosIndex === 3) currentPosIndex = 4; // Z pater zpět na silnici
+                else if (currentPosIndex === 1 || currentPosIndex === 3) currentPosIndex = 4;
             }
             if (e.key === "ArrowLeft") {
                 if (currentPosIndex === 2) currentPosIndex = 0;
@@ -262,7 +261,6 @@
                 return;
             }
 
-            // Kliknutí myší na nejbližší pozici
             let closestIndex = 0;
             let minDist = 9999;
             positions.forEach((pos, idx) => {
@@ -304,9 +302,16 @@
             let renderY = targetPos.y;
 
             ctx.save();
+            
+            // Naklánění a otáčení panáčka s krabicí podle strany budovy
             if (targetPos.side === 'left') {
                 ctx.translate(renderX + width / 2, renderY + height / 2);
-                ctx.scale(-1, 1);
+                ctx.scale(-1, 1); // Otočení směrem k budově
+                ctx.rotate(0.05); // Jemné naklonění
+                ctx.translate(-(renderX + width / 2), -(renderY + height / 2));
+            } else if (targetPos.side === 'right') {
+                ctx.translate(renderX + width / 2, renderY + height / 2);
+                ctx.rotate(-0.05); // Opačné naklonění pro pravou stranu
                 ctx.translate(-(renderX + width / 2), -(renderY + height / 2));
             }
 
@@ -315,9 +320,6 @@
                 ctx.drawImage(sourceToDraw, renderX, renderY, width, height);
             }
             ctx.restore();
-
-            // Panáček už má vlastní červenou krabici nakreslenou přímo v player1.png, 
-            // takže zde nemusíme kreslit další umělý košík navíc.
         }
 
         let lilky = [];
@@ -352,16 +354,26 @@
                 if (!isPaused && !isGameOver && !isShopOpen) {
                     if (l.state === 'walking') {
                         l.x += l.isLeft ? l.speed : -l.speed;
-                        l.y = r.y;
+                        
+                        // Krátká rampa u okna (mírný sestup/výstup na balkon)
+                        let rampZone = 30;
+                        if (l.isLeft && l.x > r.endX - rampZone) {
+                            let progress = (l.x - (r.endX - rampZone)) / rampZone;
+                            l.y = r.y + (progress * 15); // Rampa vede lehce dolů/ven na balkon
+                        } else if (!l.isLeft && l.x < r.endX + rampZone) {
+                            let progress = ((r.endX + rampZone) - l.x) / rampZone;
+                            l.y = r.y + (progress * 15);
+                        } else {
+                            l.y = r.y;
+                        }
+
                         l.angle += l.isLeft ? 0.04 : -0.04;
                         
-                        // Zde lilek dojde na konec patra k balkonu
                         let reachX = r.endX;
                         if ((l.isLeft && l.x >= reachX) || (!l.isLeft && l.x <= reachX)) {
                             l.state = 'at_balcony';
                         }
                     } else if (l.state === 'at_balcony') {
-                        // Kontrola, zda panáček stojí na správném balkonu
                         if (currentPosIndex === l.roomIndex) {
                             playSound('catch'); 
                             catchAnimFrames = 8; 
@@ -377,7 +389,6 @@
                             }
                             continue;
                         } else {
-                            // Pokud tam panáček není, lilek padá dolů k zemi
                             l.state = 'falling';
                         }
                     } else if (l.state === 'falling') {
