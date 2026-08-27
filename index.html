@@ -101,21 +101,44 @@
         const bgImg = new Image();
         bgImg.src = "hlavni stranka.png";
 
+        // Zde je opravený název souboru na player1.png
         const playerImg = new Image();
-        playerImg.src = "player.png"; // nebo player1.png podle toho, co máš nahrané
+        playerImg.src = "player1.png";
 
         const lilekImg = new Image();
         lilekImg.src = "lilek.png";
 
-        // Přesné pozice pater a balkonů podle tvého nového obrázku budov
+        // Pomocný canvas pro odstranění bílého pozadí z player1.png
+        let processedPlayerCanvas = null;
+        function preparePlayerImage() {
+            if (!playerImg.complete || playerImg.naturalWidth === 0) return;
+            let tempCanvas = document.createElement('canvas');
+            tempCanvas.width = playerImg.width;
+            tempCanvas.height = playerImg.height;
+            let tCtx = tempCanvas.getContext('2d');
+            tCtx.drawImage(playerImg, 0, 0);
+            
+            let imgData = tCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+            let data = imgData.data;
+            // Odstranění bílého pozadí (pokud je pixel příliš bílý, uděláme ho průhledným)
+            for (let i = 0; i < data.length; i += 4) {
+                let r = data[i], g = data[i+1], b = data[i+2];
+                if (r > 230 && g > 230 && b > 230) {
+                    data[i+3] = 0; // alfa na 0 (průhledno)
+                }
+            }
+            tCtx.putImageData(imgData, 0, 0);
+            processedPlayerCanvas = tempCanvas;
+        }
+        playerImg.onload = preparePlayerImage;
+
         const rooms = [
-            { id: 0, side: 'left',  y: 190, startX: 70,  endX: 300 }, // Horní patro vlevo
-            { id: 1, side: 'left',  y: 345, startX: 70,  endX: 300 }, // Dolní patro vlevo
-            { id: 2, side: 'right', y: 190, startX: 830, endX: 600 }, // Horní patro vpravo
-            { id: 3, side: 'right', y: 345, startX: 830, endX: 600 }  // Dolní patro vpravo
+            { id: 0, side: 'left',  y: 190, startX: 70,  endX: 300 }, 
+            { id: 1, side: 'left',  y: 345, startX: 70,  endX: 300 }, 
+            { id: 2, side: 'right', y: 190, startX: 830, endX: 600 }, 
+            { id: 3, side: 'right', y: 345, startX: 830, endX: 600 }  
         ];
 
-        // Pozice panáčka přímo na balkonech
         const positions = [
             { x: 305, y: 175, side: 'left' },  
             { x: 305, y: 330, side: 'left' },  
@@ -275,19 +298,15 @@
             let renderY = targetPos.y;
 
             ctx.save();
-            
-            // Automatické odstranění případného bílého pozadí kolem obrázku panáčka
-            ctx.globalCompositeOperation = "source-over";
-
             if (targetPos.side === 'left') {
                 ctx.translate(renderX + width / 2, renderY + height / 2);
                 ctx.scale(-1, 1);
                 ctx.translate(-(renderX + width / 2), -(renderY + height / 2));
             }
 
-            if (playerImg.complete) {
-                // Pokud má obrázek bílé pozadí, vytvoříme dočasný canvas pro jeho vyčištění
-                ctx.drawImage(playerImg, renderX, renderY, width, height);
+            let sourceToDraw = processedPlayerCanvas ? processedPlayerCanvas : playerImg;
+            if (sourceToDraw) {
+                ctx.drawImage(sourceToDraw, renderX, renderY, width, height);
             }
             ctx.restore();
 
@@ -349,13 +368,11 @@
                         l.y = r.y;
                         l.angle += l.isLeft ? 0.04 : -0.04;
                         
-                        // Když dorazí na okraj balkonu k panáčkovi
                         let reachX = r.endX;
                         if ((l.isLeft && l.x >= reachX) || (!l.isLeft && l.x <= reachX)) {
                             l.state = 'at_balcony';
                         }
                     } else if (l.state === 'at_balcony') {
-                        // Kontrola chycení na balkonu
                         let targetPos = positions[l.roomIndex];
                         let catchAreaX = targetPos.side === 'left' ? targetPos.x + 10 : targetPos.x + 20;
                         let catchAreaY = targetPos.y + 35;
@@ -376,7 +393,6 @@
                             }
                             continue;
                         } else {
-                            // Pokud tam panáček není, lilek padá dolů z balkonu
                             l.state = 'falling';
                         }
                     } else if (l.state === 'falling') {
