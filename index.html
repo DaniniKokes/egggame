@@ -129,24 +129,23 @@
         }
         playerImg.onload = preparePlayerImage;
 
-        // Opravená výška horních a dolních pater přímo na podlahy budov
         const rooms = [
-            { id: 0, side: 'left',  y: 205, startX: 70,  endX: 305 }, // Horní patro vlevo
-            { id: 1, side: 'left',  y: 355, startX: 70,  endX: 305 }, // Dolní patro vlevo (opraveno!)
-            { id: 2, side: 'right', y: 205, startX: 830, endX: 595 }, // Horní patro vpravo
-            { id: 3, side: 'right', y: 355, startX: 830, endX: 595 }  // Dolní patro vpravo (opraveno!)
+            { id: 0, side: 'left',  y: 205, startX: 70,  endX: 305 }, 
+            { id: 1, side: 'left',  y: 355, startX: 70,  endX: 305 }, 
+            { id: 2, side: 'right', y: 205, startX: 830, endX: 595 }, 
+            { id: 3, side: 'right', y: 355, startX: 830, endX: 595 }  
         ];
 
-        // Pozice panáčka přesně u balkonů a dole na silnici
+        // Opravené pozice panáčka – pravá strana je posunutá blíž k budově k balkonu
         const positions = [
             { x: 315, y: 180, side: 'left' },  
             { x: 315, y: 330, side: 'left' },  
-            { x: 540, y: 180, side: 'right' }, 
-            { x: 540, y: 330, side: 'right' }, 
-            { x: 450, y: 495, side: 'center' }   // Silnice
+            { x: 585, y: 180, side: 'right' }, // Přiblíženo k pravému balkonu
+            { x: 585, y: 330, side: 'right' }, // Přiblíženo k pravému balkonu
+            { x: 450, y: 495, side: 'center' }   
         ];
 
-        let currentPosIndex = 4; // Start na silnici
+        let currentPosIndex = 4; 
         let score = 0;
         let lives = 3;
         let isGameOver = false;
@@ -159,6 +158,7 @@
         let txMessage = "";
         let catchAnimFrames = 0; 
         let baseSpeed = 0.8;
+        let animTimer = 0; // Časovač pro živé pohupování a animace
 
         function drawEnvironment() {
             if (bgImg.complete && bgImg.naturalWidth !== 0) {
@@ -298,20 +298,26 @@
             let targetPos = positions[currentPosIndex];
             let width = 50;
             let height = 75;
-            let renderX = targetPos.x - width / 2;
-            let renderY = targetPos.y;
+            
+            // Živé pohupování (dýchání / idle animace) + otřes při chycení
+            animTimer += 0.1;
+            let bounce = Math.sin(animTimer) * 3;
+            let shake = catchAnimFrames > 0 ? (Math.random() * 6 - 3) : 0;
+            if (catchAnimFrames > 0) catchAnimFrames--;
+
+            let renderX = targetPos.x - width / 2 + shake;
+            let renderY = targetPos.y + bounce;
 
             ctx.save();
             
-            // Naklánění a otáčení panáčka s krabicí podle strany budovy
             if (targetPos.side === 'left') {
                 ctx.translate(renderX + width / 2, renderY + height / 2);
-                ctx.scale(-1, 1); // Otočení směrem k budově
-                ctx.rotate(0.05); // Jemné naklonění
+                ctx.scale(-1, 1); 
+                ctx.rotate(0.06); 
                 ctx.translate(-(renderX + width / 2), -(renderY + height / 2));
             } else if (targetPos.side === 'right') {
                 ctx.translate(renderX + width / 2, renderY + height / 2);
-                ctx.rotate(-0.05); // Opačné naklonění pro pravou stranu
+                ctx.rotate(-0.06); 
                 ctx.translate(-(renderX + width / 2), -(renderY + height / 2));
             }
 
@@ -355,11 +361,11 @@
                     if (l.state === 'walking') {
                         l.x += l.isLeft ? l.speed : -l.speed;
                         
-                        // Krátká rampa u okna (mírný sestup/výstup na balkon)
+                        // Vizuální rampa u okna pro plynulý přechod na balkon
                         let rampZone = 30;
                         if (l.isLeft && l.x > r.endX - rampZone) {
                             let progress = (l.x - (r.endX - rampZone)) / rampZone;
-                            l.y = r.y + (progress * 15); // Rampa vede lehce dolů/ven na balkon
+                            l.y = r.y + (progress * 15); 
                         } else if (!l.isLeft && l.x < r.endX + rampZone) {
                             let progress = ((r.endX + rampZone) - l.x) / rampZone;
                             l.y = r.y + (progress * 15);
@@ -376,7 +382,7 @@
                     } else if (l.state === 'at_balcony') {
                         if (currentPosIndex === l.roomIndex) {
                             playSound('catch'); 
-                            catchAnimFrames = 8; 
+                            catchAnimFrames = 12; // Delší otřes/záchvěv při chycení
                             lilky.splice(i, 1); 
                             score++;
                             baseSpeed = 0.8 + (score * 0.015); 
