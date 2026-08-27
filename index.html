@@ -97,7 +97,16 @@
         }
 
         let gameStarted = false;
-        const buildingWidth = 220;
+
+        // Načtení nových obrázků z GitHubu
+        const bgImg = new Image();
+        bgImg.src = "hlavni stranka.png";
+
+        const playerImg = new Image();
+        playerImg.src = "player.png";
+
+        const lilekImg = new Image();
+        lilekImg.src = "lilek.png";
 
         const rooms = [
             { id: 0, side: 'left',  y: 55 },
@@ -106,117 +115,36 @@
             { id: 3, side: 'right', y: 275 }
         ];
 
+        const positions = [
+            { x: 195, y: 145, roomIndex: 0, side: 'left' },  
+            { x: 195, y: 365, roomIndex: 1, side: 'left' },  
+            { x: 660, y: 145, roomIndex: 2, side: 'right' }, 
+            { x: 660, y: 365, roomIndex: 3, side: 'right' }  
+        ];
+
+        let currentPosIndex = 1;
+        let animTimer = 0;
+        let isMovingEffect = false;
+        let score = 0;
+        let lives = 3;
+        let isGameOver = false;
+        let isPaused = false;
+        let idleBreathTimer = 0;
         let isShopOpen = false;
         let shopTriggered = false; 
         let unlockedBoxes = { box1: true, box2: false, box3: false };
         let activeBox = 1; 
-        let familySupported = false; 
         let txPending = false;
         let txMessage = "";
         let catchAnimFrames = 0; 
 
-        function drawDetailedBuilding(startX, width, side) {
-            ctx.fillStyle = "#8E2828";
-            ctx.fillRect(startX, 0, width, canvas.height - 100);
-            ctx.fillStyle = "#6B1D1D";
-            for (let i = 0; i < canvas.height - 100; i += 22) {
-                let offset = (i / 22) % 2 === 0 ? 0 : 22;
-                for (let j = 0; j < width; j += 44) {
-                    let brickX = startX + j + (side === 'left' ? offset : -offset);
-                    ctx.fillRect(brickX, i, 40, 18);
-                }
-            }
-            ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
-            if (side === 'left') {
-                ctx.fillRect(startX + width - 15, 0, 15, canvas.height - 100);
-            } else {
-                ctx.fillRect(startX, 0, 15, canvas.height - 100);
-            }
-        }
-
         function drawEnvironment() {
-            ctx.fillStyle = "#12121a";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            ctx.fillStyle = "#4a4a5e";
-            ctx.fillRect(buildingWidth, 0, 30, canvas.height - 100); 
-            ctx.fillRect(canvas.width - buildingWidth - 30, 0, 30, canvas.height - 100); 
-
-            drawDetailedBuilding(0, buildingWidth, 'left');
-            drawDetailedBuilding(canvas.width - buildingWidth, buildingWidth, 'right');
-
-            let shopUnlocked = score >= 100;
-            ctx.fillStyle = "#0a0a0f";
-            ctx.fillRect(canvas.width - buildingWidth + 40, canvas.height - 180, 80, 80);
-            ctx.strokeStyle = shopUnlocked ? "#2ecc71" : "#444";
-            ctx.lineWidth = 3;
-            ctx.strokeRect(canvas.width - buildingWidth + 40, canvas.height - 180, 80, 80);
-
-            ctx.fillStyle = shopUnlocked ? "#2ecc71" : "#666";
-            ctx.font = "bold 13px 'Courier New', Courier, monospace";
-            ctx.fillText("SHOP", canvas.width - buildingWidth + 60, canvas.height - 135);
-
-            ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-            for (let x = buildingWidth + 30; x < canvas.width - buildingWidth - 30; x += 25) {
-                ctx.fillRect(x, 195, 14, 35);
-                ctx.fillRect(x, 415, 14, 35);
+            if (bgImg.complete && bgImg.naturalWidth !== 0) {
+                ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+            } else {
+                ctx.fillStyle = "#12121a";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
-
-            ctx.strokeStyle = "#f1c40f";
-            ctx.lineWidth = 4;
-            ctx.setLineDash([20, 15]);
-            ctx.beginPath();
-            ctx.moveTo(canvas.width / 2, 0);
-            ctx.lineTo(canvas.width / 2, canvas.height - 100);
-            ctx.stroke();
-            ctx.setLineDash([]); 
-
-            rooms.forEach(r => {
-                if (r.side === 'left') {
-                    ctx.fillStyle = "#d3832c";
-                    ctx.fillRect(0, r.y - 15, buildingWidth - 20, 85);
-                    ctx.fillStyle = "#1c1c28";
-                    ctx.fillRect(buildingWidth - 20, r.y + 20, 20, 50);
-                    ctx.fillStyle = "#ffeaa7";
-                    ctx.fillRect(buildingWidth - 15, r.y + 25, 12, 40);
-
-                    ctx.strokeStyle = "#2c2c38";
-                    ctx.lineWidth = 8;
-                    ctx.beginPath();
-                    ctx.moveTo(buildingWidth, r.y + 70);
-                    ctx.lineTo(buildingWidth + 70, r.y + 130);
-                    ctx.stroke();
-                    ctx.strokeStyle = "#d3832c";
-                    ctx.lineWidth = 3;
-                    ctx.beginPath();
-                    ctx.moveTo(buildingWidth, r.y + 70);
-                    ctx.lineTo(buildingWidth + 70, r.y + 130);
-                    ctx.stroke();
-                } else {
-                    ctx.fillStyle = "#d3832c";
-                    ctx.fillRect(canvas.width - buildingWidth + 20, r.y - 15, buildingWidth - 20, 85);
-                    ctx.fillStyle = "#1c1c28";
-                    ctx.fillRect(canvas.width - buildingWidth, r.y + 20, 20, 50);
-                    ctx.fillStyle = "#ffeaa7";
-                    ctx.fillRect(canvas.width - buildingWidth + 3, r.y + 25, 12, 40);
-
-                    ctx.strokeStyle = "#2c2c38";
-                    ctx.lineWidth = 8;
-                    ctx.beginPath();
-                    ctx.moveTo(canvas.width - buildingWidth, r.y + 70);
-                    ctx.lineTo(canvas.width - buildingWidth - 70, r.y + 130);
-                    ctx.stroke();
-                    ctx.strokeStyle = "#d3832c";
-                    ctx.lineWidth = 3;
-                    ctx.beginPath();
-                    ctx.moveTo(canvas.width - buildingWidth, r.y + 70);
-                    ctx.lineTo(canvas.width - buildingWidth - 70, r.y + 130);
-                    ctx.stroke();
-                }
-            });
-
-            ctx.fillStyle = "#181822";
-            ctx.fillRect(0, canvas.height - 100, canvas.width, 100);
         }
 
         function drawTopBoxes() {
@@ -244,25 +172,6 @@
                 ctx.fillText(b.name, x + 12, y + 32);
             });
         }
-
-        const playerImg = new Image();
-        playerImg.src = "player.png";
-
-        const positions = [
-            { x: buildingWidth + 75, y: 145, roomIndex: 0, side: 'left' },  
-            { x: buildingWidth + 75, y: 365, roomIndex: 1, side: 'left' },  
-            { x: canvas.width - buildingWidth - 120, y: 145, roomIndex: 2, side: 'right' }, 
-            { x: canvas.width - buildingWidth - 120, y: 365, roomIndex: 3, side: 'right' }  
-        ];
-
-        let currentPosIndex = 1;
-        let animTimer = 0;
-        let isMovingEffect = false;
-        let score = 0;
-        let lives = 3;
-        let isGameOver = false;
-        let isPaused = false;
-        let idleBreathTimer = 0;
 
         window.addEventListener("keydown", (e) => {
             startBackgroundMusic();
@@ -347,7 +256,6 @@
                 playTokenBalance -= price;
                 unlockedBoxes[boxKey] = true;
                 activeBox = boxId;
-                if(boxId === 3) familySupported = true;
                 txPending = false;
                 txMessage = "Successfully unlocked & equipped box! ❤️";
                 playSound('shop');
@@ -373,6 +281,7 @@
             }
 
             ctx.save();
+            // Pokud je postava vlevo, otočíme ji zrcadlově směrem k oknu
             if (targetPos.side === 'left') {
                 ctx.translate(renderX + width / 2, renderY + height / 2);
                 ctx.scale(-1, 1);
@@ -395,29 +304,18 @@
                 ctx.fillRect(basketX, basketY, 32, 22);
                 ctx.strokeStyle = "#f1c40f"; ctx.lineWidth = 2;
                 ctx.strokeRect(basketX, basketY, 32, 22);
-                ctx.fillStyle = "#512e5f";
-                ctx.fillRect(basketX + 4, basketY + 4, 8, 14);
-                ctx.fillRect(basketX + 20, basketY + 4, 8, 14);
             } else if (activeBox === 2) {
                 ctx.fillStyle = "#27ae60";
                 ctx.fillRect(basketX - 2, basketY - 2, 36, 25);
                 ctx.strokeStyle = "#f39c12"; ctx.lineWidth = 3;
                 ctx.strokeRect(basketX - 2, basketY - 2, 36, 25);
-                ctx.fillStyle = "#2ecc71";
-                ctx.fillRect(basketX + 4, basketY + 4, 24, 6);
             } else if (activeBox === 3) {
                 ctx.fillStyle = "#c0392b";
                 ctx.fillRect(basketX - 4, basketY - 4, 40, 28);
                 ctx.strokeStyle = "#f1c40f"; ctx.lineWidth = 3;
                 ctx.strokeRect(basketX - 4, basketY - 4, 40, 28);
-                ctx.fillStyle = "#f1c40f";
-                ctx.font = "10px sans-serif";
-                ctx.fillText("⭐", basketX + 12, basketY + 14);
             }
         }
-
-        const lilekImg = new Image();
-        lilekImg.src = "lilek.png"; 
 
         let lilky = [];
         let spawnCounter = 0;
@@ -452,7 +350,7 @@
 
                 if (!isPaused && !isGameOver && !isShopOpen) {
                     if (l.state === 'room') {
-                        let windowX = l.isLeft ? buildingWidth : (canvas.width - buildingWidth);
+                        let windowX = l.isLeft ? 175 : (canvas.width - 175);
                         l.x += l.isLeft ? l.speed : -l.speed;
                         l.y = r.y + 70;
                         l.angle += l.isLeft ? 0.04 : -0.04;
@@ -460,7 +358,7 @@
                             l.state = 'ramp';
                         }
                     } else if (l.state === 'ramp') {
-                        let rampStartX = l.isLeft ? buildingWidth : (canvas.width - buildingWidth);
+                        let rampStartX = l.isLeft ? 175 : (canvas.width - 175);
                         let rampStartY = r.y + 70;
 
                         l.x += l.isLeft ? l.speed : -l.speed;
@@ -469,7 +367,6 @@
                         l.angle += l.isLeft ? 0.06 : -0.06;
 
                         let targetPos = positions[l.roomIndex];
-                        // Přesně sladěno se středem košíku
                         let catchAreaX = targetPos.side === 'left' ? targetPos.x - 6 : targetPos.x + 50;
                         let catchAreaY = targetPos.y + 40;
                         let distance = Math.hypot(l.x - catchAreaX, l.y - catchAreaY);
@@ -490,7 +387,7 @@
                             continue;
                         }
 
-                        let rampEndX = l.isLeft ? (buildingWidth + 70) : (canvas.width - buildingWidth - 70);
+                        let rampEndX = l.isLeft ? (175 + 70) : (canvas.width - 175 - 70);
                         if ((l.isLeft && l.x >= rampEndX) || (!l.isLeft && l.x < rampEndX)) {
                             l.state = 'falling';
                         }
@@ -528,7 +425,7 @@
         }
 
         function drawStartScreen() {
-            ctx.fillStyle = "rgba(10, 10, 15, 0.95)";
+            ctx.fillStyle = "rgba(10, 10, 15, 0.85)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = "#f1c40f"; ctx.font = "bold 36px 'Courier New', Courier, monospace"; ctx.textAlign = "center";
             ctx.fillText("EGG & EGGPLANT", canvas.width / 2, canvas.height / 2 - 90);
@@ -581,8 +478,6 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = "#f1c40f"; ctx.font = "bold 30px 'Courier New', Courier, monospace"; ctx.textAlign = "center";
             ctx.fillText("COMMUNITY SHOP & BASKETS", canvas.width / 2, 75);
-            ctx.fillStyle = "#ffffff"; ctx.font = "14px 'Courier New', Courier, monospace";
-            ctx.fillText("Equip upgraded baskets & support family care ❤️", canvas.width / 2, 105);
 
             ctx.fillStyle = "#1c1c28"; ctx.fillRect(canvas.width / 2 - 270, 160, 160, 175);
             ctx.strokeStyle = activeBox === 1 ? "#2ecc71" : "#3498db"; ctx.strokeRect(canvas.width / 2 - 270, 160, 160, 175);
@@ -655,8 +550,8 @@
             requestAnimationFrame(gameLoop);
         }
 
-        playerImg.onload = () => { gameLoop(); };
-        if(playerImg.complete) { gameLoop(); }
+        bgImg.onload = () => { gameLoop(); };
+        if(bgImg.complete) { gameLoop(); }
     </script>
 </body>
 </html>
