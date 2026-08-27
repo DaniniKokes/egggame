@@ -101,14 +101,12 @@
         const bgImg = new Image();
         bgImg.src = "hlavni stranka.png";
 
-        // Zde je opravený název souboru na player1.png
         const playerImg = new Image();
         playerImg.src = "player1.png";
 
         const lilekImg = new Image();
         lilekImg.src = "lilek.png";
 
-        // Pomocný canvas pro odstranění bílého pozadí z player1.png
         let processedPlayerCanvas = null;
         function preparePlayerImage() {
             if (!playerImg.complete || playerImg.naturalWidth === 0) return;
@@ -120,11 +118,10 @@
             
             let imgData = tCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
             let data = imgData.data;
-            // Odstranění bílého pozadí (pokud je pixel příliš bílý, uděláme ho průhledným)
             for (let i = 0; i < data.length; i += 4) {
                 let r = data[i], g = data[i+1], b = data[i+2];
                 if (r > 230 && g > 230 && b > 230) {
-                    data[i+3] = 0; // alfa na 0 (průhledno)
+                    data[i+3] = 0;
                 }
             }
             tCtx.putImageData(imgData, 0, 0);
@@ -132,21 +129,24 @@
         }
         playerImg.onload = preparePlayerImage;
 
+        // Pozice pater pro běh lilků po podlaze v budovách
         const rooms = [
-            { id: 0, side: 'left',  y: 190, startX: 70,  endX: 300 }, 
-            { id: 1, side: 'left',  y: 345, startX: 70,  endX: 300 }, 
-            { id: 2, side: 'right', y: 190, startX: 830, endX: 600 }, 
-            { id: 3, side: 'right', y: 345, startX: 830, endX: 600 }  
+            { id: 0, side: 'left',  y: 235, startX: 60,  endX: 310 }, // Horní patro vlevo
+            { id: 1, side: 'left',  y: 390, startX: 60,  endX: 310 }, // Dolní patro vlevo
+            { id: 2, side: 'right', y: 235, startX: 840, endX: 590 }, // Horní patro vpravo
+            { id: 3, side: 'right', y: 390, startX: 840, endX: 590 }  // Dolní patro vpravo
         ];
 
+        // Definované pozice, kam se může panáček pohybovat (včetně silnice dole)
         const positions = [
-            { x: 305, y: 175, side: 'left' },  
-            { x: 305, y: 330, side: 'left' },  
-            { x: 550, y: 175, side: 'right' }, 
-            { x: 550, y: 330, side: 'right' }  
+            { x: 310, y: 195, side: 'left', type: 'balcony' },  
+            { x: 310, y: 350, side: 'left', type: 'balcony' },  
+            { x: 545, y: 195, side: 'right', type: 'balcony' }, 
+            { x: 545, y: 350, side: 'right', type: 'balcony' }, 
+            { x: 450, y: 495, side: 'center', type: 'road' }   // Startovní pozice na silnici uprostřed
         ];
 
-        let currentPosIndex = 1; 
+        let currentPosIndex = 4; // Začíná na silnici uprostřed!
         let score = 0;
         let lives = 3;
         let isGameOver = false;
@@ -213,21 +213,26 @@
             }
             if (isPaused) return;
 
+            // Logika přepínání šipkami (ze silnice jde jet nahoru na dolní patra)
             if (e.key === "ArrowUp") {
-                if (currentPosIndex === 1) currentPosIndex = 0;
-                if (currentPosIndex === 3) currentPosIndex = 2;
+                if (currentPosIndex === 4) currentPosIndex = 1; // Ze silnice na levé dolní
+                else if (currentPosIndex === 1) currentPosIndex = 0;
+                else if (currentPosIndex === 3) currentPosIndex = 2;
             }
             if (e.key === "ArrowDown") {
                 if (currentPosIndex === 0) currentPosIndex = 1;
-                if (currentPosIndex === 2) currentPosIndex = 3;
+                else if (currentPosIndex === 2) currentPosIndex = 3;
+                else if (currentPosIndex === 1 || currentPosIndex === 3) currentPosIndex = 4; // Z pater zpět na silnici
             }
             if (e.key === "ArrowLeft") {
                 if (currentPosIndex === 2) currentPosIndex = 0;
-                if (currentPosIndex === 3) currentPosIndex = 1;
+                else if (currentPosIndex === 3) currentPosIndex = 1;
+                else if (currentPosIndex === 4) currentPosIndex = 1;
             }
             if (e.key === "ArrowRight") {
                 if (currentPosIndex === 0) currentPosIndex = 2;
-                if (currentPosIndex === 1) currentPosIndex = 3;
+                else if (currentPosIndex === 1) currentPosIndex = 3;
+                else if (currentPosIndex === 4) currentPosIndex = 3;
             }
         });
 
@@ -257,6 +262,7 @@
                 return;
             }
 
+            // Kliknutí myší na nejbližší pozici
             let closestIndex = 0;
             let minDist = 9999;
             positions.forEach((pos, idx) => {
@@ -266,7 +272,7 @@
                     closestIndex = idx;
                 }
             });
-            if (minDist < 150) {
+            if (minDist < 180) {
                 currentPosIndex = closestIndex;
             }
         });
@@ -292,9 +298,9 @@
 
         function drawPlayerWithBasket() {
             let targetPos = positions[currentPosIndex];
-            let width = 45;
-            let height = 65;
-            let renderX = targetPos.x;
+            let width = 50;
+            let height = 75;
+            let renderX = targetPos.x - width / 2;
             let renderY = targetPos.y;
 
             ctx.save();
@@ -310,27 +316,8 @@
             }
             ctx.restore();
 
-            if (catchAnimFrames > 0) catchAnimFrames--;
-            let basketBounce = catchAnimFrames > 0 ? -6 : 0;
-            let basketX = targetPos.side === 'left' ? renderX - 22 : renderX + 32;
-            let basketY = renderY + 28 + basketBounce;
-
-            if (activeBox === 1) {
-                ctx.fillStyle = "#8e44ad";
-                ctx.fillRect(basketX, basketY, 32, 22);
-                ctx.strokeStyle = "#f1c40f"; ctx.lineWidth = 2;
-                ctx.strokeRect(basketX, basketY, 32, 22);
-            } else if (activeBox === 2) {
-                ctx.fillStyle = "#27ae60";
-                ctx.fillRect(basketX - 2, basketY - 2, 36, 25);
-                ctx.strokeStyle = "#f39c12"; ctx.lineWidth = 3;
-                ctx.strokeRect(basketX - 2, basketY - 2, 36, 25);
-            } else if (activeBox === 3) {
-                ctx.fillStyle = "#c0392b";
-                ctx.fillRect(basketX - 4, basketY - 4, 40, 28);
-                ctx.strokeStyle = "#f1c40f"; ctx.lineWidth = 3;
-                ctx.strokeRect(basketX - 4, basketY - 4, 40, 28);
-            }
+            // Panáček už má vlastní červenou krabici nakreslenou přímo v player1.png, 
+            // takže zde nemusíme kreslit další umělý košík navíc.
         }
 
         let lilky = [];
@@ -368,16 +355,13 @@
                         l.y = r.y;
                         l.angle += l.isLeft ? 0.04 : -0.04;
                         
+                        // Zde lilek dojde na konec patra k balkonu
                         let reachX = r.endX;
                         if ((l.isLeft && l.x >= reachX) || (!l.isLeft && l.x <= reachX)) {
                             l.state = 'at_balcony';
                         }
                     } else if (l.state === 'at_balcony') {
-                        let targetPos = positions[l.roomIndex];
-                        let catchAreaX = targetPos.side === 'left' ? targetPos.x + 10 : targetPos.x + 20;
-                        let catchAreaY = targetPos.y + 35;
-                        let distance = Math.hypot(l.x - catchAreaX, l.y - catchAreaY);
-
+                        // Kontrola, zda panáček stojí na správném balkonu
                         if (currentPosIndex === l.roomIndex) {
                             playSound('catch'); 
                             catchAnimFrames = 8; 
@@ -393,6 +377,7 @@
                             }
                             continue;
                         } else {
+                            // Pokud tam panáček není, lilek padá dolů k zemi
                             l.state = 'falling';
                         }
                     } else if (l.state === 'falling') {
@@ -536,6 +521,7 @@
             score = 0; lives = 3; baseSpeed = 0.8; lilky = []; spawnCounter = 0;
             isGameOver = false; isPaused = false; isShopOpen = false; shopTriggered = false;
             unlockedBoxes = { box1: true, box2: false, box3: false }; activeBox = 1;
+            currentPosIndex = 4;
         }
 
         function gameLoop() {
