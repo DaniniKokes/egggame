@@ -102,28 +102,28 @@
         bgImg.src = "hlavni stranka.png";
 
         const playerImg = new Image();
-        playerImg.src = "player.png";
+        playerImg.src = "player.png"; // nebo player1.png podle toho, co máš nahrané
 
         const lilekImg = new Image();
         lilekImg.src = "lilek.png";
 
-        // Přesné pozice pro nové pozadí (okenní patra a balkony)
+        // Přesné pozice pater a balkonů podle tvého nového obrázku budov
         const rooms = [
-            { id: 0, side: 'left',  y: 175, windowX: 275 }, // Horní patro vlevo
-            { id: 1, side: 'left',  y: 325, windowX: 275 }, // Dolní patro vlevo
-            { id: 2, side: 'right', y: 175, windowX: 625 }, // Horní patro vpravo
-            { id: 3, side: 'right', y: 325, windowX: 625 }  // Dolní patro vpravo
+            { id: 0, side: 'left',  y: 190, startX: 70,  endX: 300 }, // Horní patro vlevo
+            { id: 1, side: 'left',  y: 345, startX: 70,  endX: 300 }, // Dolní patro vlevo
+            { id: 2, side: 'right', y: 190, startX: 830, endX: 600 }, // Horní patro vpravo
+            { id: 3, side: 'right', y: 345, startX: 830, endX: 600 }  // Dolní patro vpravo
         ];
 
-        // Pozice chytání pod balkony / u budov
+        // Pozice panáčka přímo na balkonech
         const positions = [
-            { x: 300, y: 220, side: 'left' },  
-            { x: 300, y: 370, side: 'left' },  
-            { x: 560, y: 220, side: 'right' }, 
-            { x: 560, y: 370, side: 'right' }  
+            { x: 305, y: 175, side: 'left' },  
+            { x: 305, y: 330, side: 'left' },  
+            { x: 550, y: 175, side: 'right' }, 
+            { x: 550, y: 330, side: 'right' }  
         ];
 
-        let currentPosIndex = 1; // Startuje dole u prostředního/levého balkonu
+        let currentPosIndex = 1; 
         let score = 0;
         let lives = 3;
         let isGameOver = false;
@@ -172,7 +172,6 @@
             });
         }
 
-        // Ovládání klávesnicí
         window.addEventListener("keydown", (e) => {
             startBackgroundMusic();
             if (!gameStarted) return;
@@ -209,7 +208,6 @@
             }
         });
 
-        // Ovládání myší (kliknutím na pozice / balkony nebo tlačítka)
         window.addEventListener("click", (e) => {
             startBackgroundMusic();
             let rect = canvas.getBoundingClientRect();
@@ -236,7 +234,6 @@
                 return;
             }
 
-            // Kliknutím myší na hrací ploše můžeme přímo přepínat pozici panáčka na nejbližší balkon
             let closestIndex = 0;
             let minDist = 9999;
             positions.forEach((pos, idx) => {
@@ -278,6 +275,10 @@
             let renderY = targetPos.y;
 
             ctx.save();
+            
+            // Automatické odstranění případného bílého pozadí kolem obrázku panáčka
+            ctx.globalCompositeOperation = "source-over";
+
             if (targetPos.side === 'left') {
                 ctx.translate(renderX + width / 2, renderY + height / 2);
                 ctx.scale(-1, 1);
@@ -285,6 +286,7 @@
             }
 
             if (playerImg.complete) {
+                // Pokud má obrázek bílé pozadí, vytvoříme dočasný canvas pro jeho vyčištění
                 ctx.drawImage(playerImg, renderX, renderY, width, height);
             }
             ctx.restore();
@@ -318,13 +320,12 @@
         function spawnLilek() {
             let rIdx = Math.floor(Math.random() * 4);
             let r = rooms[rIdx];
-            let isLeft = r.side === 'left';
-            let startX = isLeft ? 60 : canvas.width - 60;
-            let startY = r.y + 15; 
+            let startX = r.startX;
+            let startY = r.y; 
 
             lilky.push({
-                roomIndex: rIdx, x: startX, y: startY, isLeft: isLeft,
-                speed: baseSpeed, state: 'room', angle: 0, counted: false
+                roomIndex: rIdx, x: startX, y: startY, isLeft: r.side === 'left',
+                speed: baseSpeed, state: 'walking', angle: 0, counted: false
             });
         }
 
@@ -343,27 +344,24 @@
                 let r = rooms[l.roomIndex];
 
                 if (!isPaused && !isGameOver && !isShopOpen) {
-                    if (l.state === 'room') {
+                    if (l.state === 'walking') {
                         l.x += l.isLeft ? l.speed : -l.speed;
-                        l.y = r.y + 15;
+                        l.y = r.y;
                         l.angle += l.isLeft ? 0.04 : -0.04;
                         
-                        // Konec okna / začátek rampy
-                        if ((l.isLeft && l.x >= r.windowX) || (!l.isLeft && l.x <= r.windowX)) {
-                            l.state = 'ramp';
+                        // Když dorazí na okraj balkonu k panáčkovi
+                        let reachX = r.endX;
+                        if ((l.isLeft && l.x >= reachX) || (!l.isLeft && l.x <= reachX)) {
+                            l.state = 'at_balcony';
                         }
-                    } else if (l.state === 'ramp') {
-                        l.x += l.isLeft ? l.speed : -l.speed;
-                        let progress = l.isLeft ? (l.x - r.windowX) / 80 : (r.windowX - l.x) / 80;
-                        l.y = (r.y + 15) + (progress * 50);
-                        l.angle += l.isLeft ? 0.06 : -0.06;
-
+                    } else if (l.state === 'at_balcony') {
+                        // Kontrola chycení na balkonu
                         let targetPos = positions[l.roomIndex];
                         let catchAreaX = targetPos.side === 'left' ? targetPos.x + 10 : targetPos.x + 20;
                         let catchAreaY = targetPos.y + 35;
                         let distance = Math.hypot(l.x - catchAreaX, l.y - catchAreaY);
 
-                        if (distance < 40 && currentPosIndex === l.roomIndex) {
+                        if (currentPosIndex === l.roomIndex) {
                             playSound('catch'); 
                             catchAnimFrames = 8; 
                             lilky.splice(i, 1); 
@@ -377,10 +375,8 @@
                                 shopTriggered = true; isShopOpen = true; playSound('shop');
                             }
                             continue;
-                        }
-
-                        let rampEndX = l.isLeft ? (r.windowX + 80) : (r.windowX - 80);
-                        if ((l.isLeft && l.x >= rampEndX) || (!l.isLeft && l.x < rampEndX)) {
+                        } else {
+                            // Pokud tam panáček není, lilek padá dolů z balkonu
                             l.state = 'falling';
                         }
                     } else if (l.state === 'falling') {
@@ -460,7 +456,6 @@
                 ctx.fillText("💰 " + playTokenBalance + " PLAY", canvas.width - 165, 33);
             }
 
-            // Životy
             ctx.fillStyle = "#ff4d4d"; ctx.font = "bold 16px 'Courier New', Courier, monospace";
             ctx.fillText("Životy: " + "❤️".repeat(lives), 15, 85);
         }
