@@ -101,48 +101,31 @@
         const bgImg = new Image();
         bgImg.src = "hlavni stranka.png";
 
-        const playerImg = new Image();
-        playerImg.src = "player1.png";
+        const playerLeftImg = new Image();
+        playerLeftImg.src = "player.png l.png";
+
+        const playerRightImg = new Image();
+        playerRightImg.src = "player.png r.png";
+
+        const playerCenterImg = new Image();
+        playerCenterImg.src = "player1.png";
 
         const lilekImg = new Image();
         lilekImg.src = "lilek.png";
 
-        let processedPlayerCanvas = null;
-        function preparePlayerImage() {
-            if (!playerImg.complete || playerImg.naturalWidth === 0) return;
-            let tempCanvas = document.createElement('canvas');
-            tempCanvas.width = playerImg.width;
-            tempCanvas.height = playerImg.height;
-            let tCtx = tempCanvas.getContext('2d');
-            tCtx.drawImage(playerImg, 0, 0);
-            
-            let imgData = tCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-            let data = imgData.data;
-            for (let i = 0; i < data.length; i += 4) {
-                let r = data[i], g = data[i+1], b = data[i+2];
-                if (r > 230 && g > 230 && b > 230) {
-                    data[i+3] = 0;
-                }
-            }
-            tCtx.putImageData(imgData, 0, 0);
-            processedPlayerCanvas = tempCanvas;
-        }
-        playerImg.onload = preparePlayerImage;
-
-        const rooms = [
-            { id: 0, side: 'left',  y: 205, startX: 70,  endX: 305 }, 
-            { id: 1, side: 'left',  y: 355, startX: 70,  endX: 305 }, 
-            { id: 2, side: 'right', y: 205, startX: 830, endX: 595 }, 
-            { id: 3, side: 'right', y: 355, startX: 830, endX: 595 }  
+        const positions = [
+            { x: 300, y: 350, side: 'left' },   // 0: Levé horní patro
+            { x: 300, y: 480, side: 'left' },   // 1: Levé dolní patro
+            { x: 600, y: 350, side: 'right' },  // 2: Pravé horní patro
+            { x: 600, y: 480, side: 'right' },  // 3: Pravé dolní patro
+            { x: 450, y: 565, side: 'center' }  // 4: Dole na silnici
         ];
 
-        // Opravené pozice panáčka – pravá strana je posunutá blíž k budově k balkonu
-        const positions = [
-            { x: 315, y: 180, side: 'left' },  
-            { x: 315, y: 330, side: 'left' },  
-            { x: 585, y: 180, side: 'right' }, // Přiblíženo k pravému balkonu
-            { x: 585, y: 330, side: 'right' }, // Přiblíženo k pravému balkonu
-            { x: 450, y: 495, side: 'center' }   
+        const rooms = [
+            { id: 0, side: 'left',  y: 245, startX: 80, endX: 300 },  
+            { id: 1, side: 'left',  y: 380, startX: 80, endX: 300 },  
+            { id: 2, side: 'right', y: 245, startX: 820, endX: 600 },  
+            { id: 3, side: 'right', y: 380, startX: 820, endX: 600 }   
         ];
 
         let currentPosIndex = 4; 
@@ -157,8 +140,8 @@
         let txPending = false;
         let txMessage = "";
         let catchAnimFrames = 0; 
-        let baseSpeed = 0.8;
-        let animTimer = 0; // Časovač pro živé pohupování a animace
+        let baseSpeed = 0.7; 
+        let animTimer = 0;
 
         function drawEnvironment() {
             if (bgImg.complete && bgImg.naturalWidth !== 0) {
@@ -167,6 +150,16 @@
                 ctx.fillStyle = "#12121a";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
+
+            ctx.fillStyle = "rgba(40, 40, 55, 0.7)";
+            ctx.strokeStyle = "#555";
+            ctx.lineWidth = 2;
+
+            ctx.fillRect(260, 350, 80, 10); ctx.strokeRect(260, 350, 80, 10);
+            ctx.fillRect(260, 480, 80, 10); ctx.strokeRect(260, 480, 80, 10);
+
+            ctx.fillRect(560, 350, 80, 10); ctx.strokeRect(560, 350, 80, 10);
+            ctx.fillRect(560, 480, 80, 10); ctx.strokeRect(560, 480, 80, 10);
         }
 
         function drawTopBoxes() {
@@ -270,7 +263,7 @@
                     closestIndex = idx;
                 }
             });
-            if (minDist < 180) {
+            if (minDist < 150) {
                 currentPosIndex = closestIndex;
             }
         });
@@ -296,63 +289,61 @@
 
         function drawPlayerWithBasket() {
             let targetPos = positions[currentPosIndex];
-            let width = 50;
-            let height = 75;
+            // Ještě o kousek zvětšeno
+            let width = 72;
+            let height = 100;
             
-            // Živé pohupování (dýchání / idle animace) + otřes při chycení
             animTimer += 0.1;
-            let bounce = Math.sin(animTimer) * 3;
+            let bounce = Math.sin(animTimer) * 2;
             let shake = catchAnimFrames > 0 ? (Math.random() * 6 - 3) : 0;
             if (catchAnimFrames > 0) catchAnimFrames--;
 
             let renderX = targetPos.x - width / 2 + shake;
-            let renderY = targetPos.y + bounce;
+            let renderY = targetPos.y - height + bounce;
 
             ctx.save();
             
-            if (targetPos.side === 'left') {
-                ctx.translate(renderX + width / 2, renderY + height / 2);
-                ctx.scale(-1, 1); 
-                ctx.rotate(0.06); 
-                ctx.translate(-(renderX + width / 2), -(renderY + height / 2));
-            } else if (targetPos.side === 'right') {
-                ctx.translate(renderX + width / 2, renderY + height / 2);
-                ctx.rotate(-0.06); 
-                ctx.translate(-(renderX + width / 2), -(renderY + height / 2));
-            }
+            let imgToDraw = playerCenterImg;
+            if (targetPos.side === 'left') imgToDraw = playerLeftImg;
+            else if (targetPos.side === 'right') imgToDraw = playerRightImg;
 
-            let sourceToDraw = processedPlayerCanvas ? processedPlayerCanvas : playerImg;
-            if (sourceToDraw) {
-                ctx.drawImage(sourceToDraw, renderX, renderY, width, height);
+            if (imgToDraw.complete && imgToDraw.naturalWidth !== 0) {
+                ctx.drawImage(imgToDraw, renderX, renderY, width, height);
+            } else {
+                ctx.fillStyle = "#f1c40f";
+                ctx.fillRect(renderX, renderY, width, height);
             }
             ctx.restore();
         }
 
         let lilky = [];
+        let spawningLilky = []; // Pro animaci chycených lilků padajících dolů
         let spawnCounter = 0;
 
         function spawnLilek() {
             let rIdx = Math.floor(Math.random() * 4);
             let r = rooms[rIdx];
-            let startX = r.startX;
-            let startY = r.y; 
+            
+            let currentCycleScore = score % 100;
+            let dynamicSpeed = 0.7 + (currentCycleScore * 0.015);
 
             lilky.push({
-                roomIndex: rIdx, x: startX, y: startY, isLeft: r.side === 'left',
-                speed: baseSpeed, state: 'walking', angle: 0, counted: false
+                roomIndex: rIdx, x: r.startX, y: r.y - 10, isLeft: r.side === 'left',
+                speed: dynamicSpeed, state: 'walking', angle: 0, counted: false
             });
         }
 
         function updateAndDrawLilky() {
             if (!isPaused && !isGameOver && !isShopOpen) {
                 spawnCounter++;
-                let currentSpawnInterval = Math.max(80, 160 - (score * 2));
+                let currentSpawnInterval = Math.max(70, 150 - (score * 2));
                 if (spawnCounter > currentSpawnInterval) { 
                     spawnLilek();
                     spawnCounter = 0;
                 }
             }
 
+            // 1. Zpracování padajících/chodících lilků
             for (let i = lilky.length - 1; i >= 0; i--) {
                 let l = lilky[i];
                 let r = rooms[l.roomIndex];
@@ -360,32 +351,30 @@
                 if (!isPaused && !isGameOver && !isShopOpen) {
                     if (l.state === 'walking') {
                         l.x += l.isLeft ? l.speed : -l.speed;
-                        
-                        // Vizuální rampa u okna pro plynulý přechod na balkon
-                        let rampZone = 30;
-                        if (l.isLeft && l.x > r.endX - rampZone) {
-                            let progress = (l.x - (r.endX - rampZone)) / rampZone;
-                            l.y = r.y + (progress * 15); 
-                        } else if (!l.isLeft && l.x < r.endX + rampZone) {
-                            let progress = ((r.endX + rampZone) - l.x) / rampZone;
-                            l.y = r.y + (progress * 15);
-                        } else {
-                            l.y = r.y;
-                        }
-
+                        l.y = r.y - 10; 
                         l.angle += l.isLeft ? 0.04 : -0.04;
                         
-                        let reachX = r.endX;
-                        if ((l.isLeft && l.x >= reachX) || (!l.isLeft && l.x <= reachX)) {
+                        if ((l.isLeft && l.x >= r.endX) || (!l.isLeft && l.x <= r.endX)) {
                             l.state = 'at_balcony';
                         }
                     } else if (l.state === 'at_balcony') {
                         if (currentPosIndex === l.roomIndex) {
                             playSound('catch'); 
-                            catchAnimFrames = 12; // Delší otřes/záchvěv při chycení
+                            catchAnimFrames = 12; 
+                            
+                            // Spustíme animaci chyceného lilku padajícího dolů z košíku
+                            spawningLilky.push({
+                                x: positions[currentPosIndex].x,
+                                y: positions[currentPosIndex].y - 30,
+                                targetY: positions[currentPosIndex].y + 10,
+                                progress: 0
+                            });
+
                             lilky.splice(i, 1); 
                             score++;
-                            baseSpeed = 0.8 + (score * 0.015); 
+                            
+                            let currentCycleScore = score % 100;
+                            baseSpeed = 0.7 + (currentCycleScore * 0.015); 
 
                             if (freeTrialMode && score >= FREE_TRIAL_LIMIT) {
                                 isGameOver = true; playSound('gameover');
@@ -398,8 +387,9 @@
                             l.state = 'falling';
                         }
                     } else if (l.state === 'falling') {
-                        l.y += 4; l.angle += 0.1;
-                        let groundY = canvas.height - 100;
+                        l.y += 6; 
+                        l.angle += 0.1;
+                        let groundY = canvas.height - 15; 
                         if (l.y >= groundY) {
                             l.y = groundY;
                             l.state = 'ground';
@@ -417,7 +407,7 @@
                 ctx.translate(l.x, l.y);
                 ctx.rotate(l.angle);
                 if (lilekImg.complete && lilekImg.naturalWidth !== 0) {
-                    ctx.drawImage(lilekImg, -15, -15, 30, 30);
+                    ctx.drawImage(lilekImg, -14, -14, 28, 28);
                 } else {
                     ctx.fillStyle = "#800080";
                     ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.fill();
@@ -427,6 +417,28 @@
                 if (!isPaused && l.state === 'ground' && Math.random() < 0.03) {
                     lilky.splice(i, 1);
                 }
+            }
+
+            // 2. Vykreslení a animace chycených lilků (směr dolů do košíku)
+            for (let i = spawningLilky.length - 1; i >= 0; i--) {
+                let sl = spawningLilky[i];
+                if (!isPaused && !isGameOver && !isShopOpen) {
+                    sl.progress += 0.15;
+                    sl.y += 3; // Pohyb dolů při chycení
+                    if (sl.progress >= 1) {
+                        spawningLilky.splice(i, 1);
+                        continue;
+                    }
+                }
+                ctx.save();
+                ctx.translate(sl.x, sl.y);
+                if (lilekImg.complete && lilekImg.naturalWidth !== 0) {
+                    ctx.drawImage(lilekImg, -14, -14, 28, 28);
+                } else {
+                    ctx.fillStyle = "#800080";
+                    ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.fill();
+                }
+                ctx.restore();
             }
         }
 
@@ -535,7 +547,7 @@
 
         function restartGame() {
             gameStarted = false; freeTrialMode = false;
-            score = 0; lives = 3; baseSpeed = 0.8; lilky = []; spawnCounter = 0;
+            score = 0; lives = 3; baseSpeed = 0.7; lilky = []; spawningLilky = []; spawnCounter = 0;
             isGameOver = false; isPaused = false; isShopOpen = false; shopTriggered = false;
             unlockedBoxes = { box1: true, box2: false, box3: false }; activeBox = 1;
             currentPosIndex = 4;
