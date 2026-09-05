@@ -25,6 +25,28 @@
 <body>
     <canvas id="gameCanvas" width="900" height="600"></canvas>
     <script> 
+    // Vytvoří ladicí okno na obrazovce
+const debugDiv = document.createElement('div');
+debugDiv.style.position = 'fixed';
+debugDiv.style.top = '10px';
+debugDiv.style.left = '10px';
+debugDiv.style.background = 'black';
+debugDiv.style.color = 'lime';
+debugDiv.style.padding = '10px';
+debugDiv.style.fontSize = '16px';
+debugDiv.style.zIndex = '99999';
+debugDiv.textContent = 'Sleduji vstupy...';
+document.body.appendChild(debugDiv);
+
+function logEvent(name, e) {
+    debugDiv.textContent = `Typ: ${name} | Detail: ${e.key || e.button || e.touches?.length || 'pohyb'}`;
+}
+
+window.addEventListener('keydown', (e) => logEvent('Klávesa', e));
+window.addEventListener('touchstart', (e) => logEvent('Dotyk', e));
+window.addEventListener('mousedown', (e) => logEvent('Myš', e));
+window.addEventListener('pointerdown', (e) => logEvent('Pointer', e));
+window.addEventListener('gamepadconnected', (e) => logEvent('Gamepad', e));
     // Vytvoří ladicí text na obrazovce
 const debugDiv = document.createElement('div');
 debugDiv.style.position = 'absolute';
