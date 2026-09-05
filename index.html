@@ -147,6 +147,99 @@
         let baseSpeed = 0.7; 
         let animTimer = 0;
 
+        // --- GAMEPAD / OVLADAČ & PÁČKY LOGIKA ---
+        let prevGamepadState = { buttons: {}, axes: {} };
+
+        function handleGamepadInput() {
+            const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+            if (!gamepads[0]) return;
+            const gp = gamepads[0];
+
+            // Detekce tlačítek s ošetřením proti rychlému držení (debounce)
+            const buttonPressed = (index) => {
+                let pressed = gp.buttons[index] && gp.buttons[index].pressed;
+                let wasPressed = prevGamepadState.buttons[index] || false;
+                prevGamepadState.buttons[index] = pressed;
+                return pressed && !wasPressed; // Vrátí true jen při prvním stisknutí
+            };
+
+            const anyPressed = (index) => gp.buttons[index] && gp.buttons[index].pressed;
+
+            startBackgroundMusic();
+
+            // Sledování analogových páček nebo D-padu
+            let axisX = gp.axes[0] || 0; // Levá páčka vodorovně (-1 vlevo, 1 vpravo)
+            let axisY = gp.axes[1] || 0; // Levá páčka svisle (-1 nahoru, 1 dole)
+
+            // D-pad (směrová tlačítka na ovladači obvykle na indexech 12-15)
+            let dpadUp = gp.buttons[12] && gp.buttons[12].pressed;
+            let dpadDown = gp.buttons[13] && gp.buttons[13].pressed;
+            let dpadLeft = gp.buttons[14] && gp.buttons[14].pressed;
+            let dpadRight = gp.buttons[15] && gp.buttons[15].pressed;
+
+            // Logika pohybu postavičky s prahem pro páčky (deadzone 0.5)
+            if (!isPaused && !isGameOver && !isShopOpen && gameStarted) {
+                // Pohyb nahoru (Páčka nahoru nebo D-pad Up s detekcí změny)
+                if ((axisY < -0.5 || dpadUp) && !prevGamepadState.movedY) {
+                    if (currentPosIndex === 4) currentPosIndex = 1;
+                    else if (currentPosIndex === 1) currentPosIndex = 0;
+                    else if (currentPosIndex === 3) currentPosIndex = 2;
+                    prevGamepadState.movedY = true;
+                } else if (axisY >= -0.5 && axisY <= 0.5 && !dpadUp && !dpadDown) {
+                    prevGamepadState.movedY = false;
+                }
+
+                // Pohyb dolů
+                if ((axisY > 0.5 || dpadDown) && !prevGamepadState.movedYDown) {
+                    if (currentPosIndex === 0) currentPosIndex = 1;
+                    else if (currentPosIndex === 2) currentPosIndex = 3;
+                    else if (currentPosIndex === 1 || currentPosIndex === 3) currentPosIndex = 4;
+                    prevGamepadState.movedYDown = true;
+                } else if (axisY >= -0.5 && axisY <= 0.5 && !dpadDown) {
+                    prevGamepadState.movedYDown = false;
+                }
+
+                // Pohyb doleva
+                if ((axisX < -0.5 || dpadLeft) && !prevGamepadState.movedX) {
+                    if (currentPosIndex === 2) currentPosIndex = 0;
+                    else if (currentPosIndex === 3) currentPosIndex = 1;
+                    else if (currentPosIndex === 4) currentPosIndex = 1;
+                    prevGamepadState.movedX = true;
+                } else if (axisX >= -0.5 && axisX <= 0.5 && !dpadLeft && !dpadRight) {
+                    prevGamepadState.movedX = false;
+                }
+
+                // Pohyb doprava
+                if ((axisX > 0.5 || dpadRight) && !prevGamepadState.movedXRight) {
+                    if (currentPosIndex === 0) currentPosIndex = 2;
+                    else if (currentPosIndex === 1) currentPosIndex = 3;
+                    else if (currentPosIndex === 4) currentPosIndex = 3;
+                    prevGamepadState.movedXRight = true;
+                } else if (axisX >= -0.5 && axisX <= 0.5 && !dpadRight) {
+                    prevGamepadState.movedXRight = false;
+                }
+            }
+
+            // Tlačítko START / Akce (Button 0 = obvykle spodní tlačítko 'A' / 'X' nebo Button 9 = Start)
+            if (buttonPressed(0) || buttonPressed(9)) {
+                if (!gameStarted) {
+                    isConnected = true; freeTrialMode = true; gameStarted = true; playSound('shop');
+                } else if (isGameOver) {
+                    restartGame();
+                } else if (isShopOpen && !txPending) {
+                    isShopOpen = false;
+                }
+            }
+
+            // Tlačítko PAUZA (Button 3 = horní/trojúhelník nebo Button 8 = Select)
+            if (buttonPressed(3) || buttonPressed(8)) {
+                if (gameStarted && !isGameOver) {
+                    isPaused = !isPaused;
+                    playSound('shop');
+                }
+            }
+        }
+
         function drawEnvironment() {
             if (bgImg.complete && bgImg.naturalWidth !== 0) {
                 ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
@@ -192,7 +285,7 @@
             });
         }
 
-        // Ovládání klávesnicí (šipky pro pohyb postavičky)
+        // Ovládání klávesnicí (záložní možnost)
         window.addEventListener("keydown", (e) => {
             startBackgroundMusic();
             if (!gameStarted) return;
@@ -248,49 +341,7 @@
                 }
                 return;
             }
-
-            if (isShopOpen && !txPending) {
-                if (mouseX >= canvas.width / 2 - 270 && mouseX <= canvas.width / 2 - 120 && mouseY >= 160 && mouseY <= 335) {
-                    if (!unlockedBoxes.box2) buyBox('box2', 50, 2); else activeBox = 2;
-                }
-                if (mouseX >= canvas.width / 2 + 110 && mouseX <= canvas.width / 2 + 270 && mouseY >= 160 && mouseY <= 335) {
-                    if (!unlockedBoxes.box3) buyBox('box3', 100, 3); else activeBox = 3;
-                }
-                return;
-            }
-
-            let closestIndex = 0;
-            let minDist = 9999;
-            positions.forEach((pos, idx) => {
-                let dist = Math.hypot(mouseX - pos.x, mouseY - pos.y);
-                if (dist < minDist) {
-                    minDist = dist;
-                    closestIndex = idx;
-                }
-            });
-            if (minDist < 150) {
-                currentPosIndex = closestIndex;
-            }
         });
-
-        function buyBox(boxKey, price, boxId) {
-            if (playTokenBalance < price) {
-                txMessage = "Nedostatek PLAY tokenů!";
-                setTimeout(() => { txMessage = ""; }, 2500);
-                return;
-            }
-            txPending = true;
-            txMessage = "Zpracovávám transakci...";
-            setTimeout(() => {
-                playTokenBalance -= price;
-                unlockedBoxes[boxKey] = true;
-                activeBox = boxId;
-                txPending = false;
-                txMessage = "Úspěšně odemčeno! ❤️";
-                playSound('shop');
-                setTimeout(() => { txMessage = ""; }, 3000);
-            }, 1000);
-        }
 
         function drawPlayerWithBasket() {
             let targetPos = positions[currentPosIndex];
@@ -447,19 +498,28 @@
             ctx.fillStyle = "rgba(10, 10, 15, 0.85)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = "#f1c40f"; ctx.font = "bold 36px 'Courier New', Courier, monospace"; ctx.textAlign = "center";
-            ctx.fillText("EGG & EGGPLANT", canvas.width / 2, canvas.height / 2 - 90);
+            ctx.fillText("EGG & EGGPLANT", canvas.width / 2, canvas.height / 2 - 110);
             ctx.fillStyle = "#3498db"; ctx.font = "bold 18px 'Courier New', Courier, monospace";
-            ctx.fillText("PSG1 DELUXE EDITION", canvas.width / 2, canvas.height / 2 - 50);
+            ctx.fillText("PSG1 DELUXE EDITION", canvas.width / 2, canvas.height / 2 - 70);
 
-            ctx.fillStyle = "#2ecc71"; ctx.fillRect(canvas.width / 2 - 240, canvas.height / 2 + 20, 220, 60);
-            ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.strokeRect(canvas.width / 2 - 240, canvas.height / 2 + 20, 220, 60);
+            // Nápověda ovládání na úvodní obrazovce
+            ctx.fillStyle = "#2ecc71"; ctx.fillRect(canvas.width / 2 - 240, canvas.height / 2 - 20, 220, 60);
+            ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.strokeRect(canvas.width / 2 - 240, canvas.height / 2 - 20, 220, 60);
             ctx.fillStyle = "#ffffff"; ctx.font = "bold 15px 'Courier New', Courier, monospace";
-            ctx.fillText("CONNECT WALLET", canvas.width / 2 - 130, canvas.height / 2 + 47);
+            ctx.fillText("CONNECT WALLET", canvas.width / 2 - 130, canvas.height / 2 + 7);
 
-            ctx.fillStyle = "#9b59b6"; ctx.fillRect(canvas.width / 2 + 20, canvas.height / 2 + 20, 220, 60);
-            ctx.strokeRect(canvas.width / 2 + 20, canvas.height / 2 + 20, 220, 60);
+            ctx.fillStyle = "#9b59b6"; ctx.fillRect(canvas.width / 2 + 20, canvas.height / 2 - 20, 220, 60);
+            ctx.strokeRect(canvas.width / 2 + 20, canvas.height / 2 - 20, 220, 60);
             ctx.fillStyle = "#ffffff";
-            ctx.fillText("FREE TRIAL", canvas.width / 2 + 130, canvas.height / 2 + 47);
+            ctx.fillText("FREE TRIAL", canvas.width / 2 + 130, canvas.height / 2 + 7);
+
+            // Jasná nápověda pro tlačítka konzole
+            ctx.fillStyle = "#f1c40f"; ctx.font = "bold 16px 'Courier New', Courier, monospace";
+            ctx.fillText("🎮 OVLÁDÁNÍ: Křížek / Páčky = Pohyb", canvas.width / 2, canvas.height / 2 + 80);
+            ctx.fillStyle = "#ffffff"; ctx.font = "14px 'Courier New', Courier, monospace";
+            ctx.fillText("Stiskněte tlačítko [A / Spodní] pro START / VÝBĚR", canvas.width / 2, canvas.height / 2 + 110);
+            ctx.fillText("Stiskněte tlačítko [Start / Select] pro PAUZU", canvas.width / 2, canvas.height / 2 + 135);
+
             ctx.textAlign = "start";
         }
 
@@ -489,41 +549,10 @@
 
             ctx.fillStyle = "#ff4d4d"; ctx.font = "bold 16px 'Courier New', Courier, monospace";
             ctx.fillText("Životy: " + "❤️".repeat(lives), 15, 85);
-        }
 
-        function drawShopScreen() {
-            ctx.fillStyle = "rgba(10, 10, 15, 0.95)";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "#f1c40f"; ctx.font = "bold 30px 'Courier New', Courier, monospace"; ctx.textAlign = "center";
-            ctx.fillText("COMMUNITY SHOP & BASKETS", canvas.width / 2, 75);
-
-            ctx.fillStyle = "#1c1c28"; ctx.fillRect(canvas.width / 2 - 270, 160, 160, 175);
-            ctx.strokeStyle = activeBox === 1 ? "#2ecc71" : "#3498db"; ctx.strokeRect(canvas.width / 2 - 270, 160, 160, 175);
-            ctx.fillStyle = "#3498db"; ctx.fillText("100 EGG BOX", canvas.width / 2 - 190, 190);
-            ctx.fillStyle = "#fff"; ctx.fillText("ZDARMA", canvas.width / 2 - 190, 245);
-            ctx.fillStyle = activeBox === 1 ? "#2ecc71" : "#fff"; ctx.fillText(activeBox === 1 ? "VYBRÁNO" : "ZVOLIT", canvas.width / 2 - 190, 295);
-
-            ctx.fillStyle = "#1c1c28"; ctx.fillRect(canvas.width / 2 - 80, 160, 160, 175);
-            ctx.strokeStyle = activeBox === 2 ? "#2ecc71" : (unlockedBoxes.box2 ? "#3498db" : "#f1c40f"); ctx.strokeRect(canvas.width / 2 - 80, 160, 160, 175);
-            ctx.fillStyle = "#f1c40f"; ctx.fillText("250 EGG BOX", canvas.width / 2, 190);
-            ctx.fillStyle = "#fff"; ctx.fillText("50 PLAY", canvas.width / 2, 220);
-            ctx.fillStyle = activeBox === 2 ? "#2ecc71" : (unlockedBoxes.box2 ? "#3498db" : "#f1c40f");
-            ctx.fillText(activeBox === 2 ? "VYBRÁNO" : (unlockedBoxes.box2 ? "ZVOLIT" : "KOUPIT"), canvas.width / 2, 295);
-
-            ctx.fillStyle = "#1c1c28"; ctx.fillRect(canvas.width / 2 + 110, 160, 160, 175);
-            ctx.strokeStyle = activeBox === 3 ? "#2ecc71" : (unlockedBoxes.box3 ? "#3498db" : "#e74c3c"); ctx.strokeRect(canvas.width / 2 + 110, 160, 160, 175);
-            ctx.fillStyle = "#e74c3c"; ctx.fillText("500 EGG BOX", canvas.width / 2 + 190, 190);
-            ctx.fillStyle = "#fff"; ctx.fillText("100 PLAY", canvas.width / 2 + 190, 220);
-            ctx.fillStyle = activeBox === 3 ? "#2ecc71" : (unlockedBoxes.box3 ? "#3498db" : "#e74c3c");
-            ctx.fillText(activeBox === 3 ? "VYBRÁNO" : (unlockedBoxes.box3 ? "ZVOLIT" : "KOUPIT"), canvas.width / 2 + 190, 295);
-
-            if (txMessage !== "") {
-                ctx.fillStyle = "#e67e22"; ctx.font = "bold 16px 'Courier New', Courier, monospace";
-                ctx.fillText(txMessage, canvas.width / 2, 410);
-            }
-            ctx.fillStyle = "#aaa"; ctx.font = "13px 'Courier New', Courier, monospace";
-            ctx.fillText("Stiskněte ESC nebo ENTER pro návrat", canvas.width / 2, 460);
-            ctx.textAlign = "start";
+            // Malá nápověda pro pauzu nahoře
+            ctx.fillStyle = "#aaa"; ctx.font = "11px 'Courier New', Courier, monospace";
+            ctx.fillText("Pauza: Horní tlačítko / Select", 15, 110);
         }
 
         function drawPauseScreen() {
@@ -531,7 +560,7 @@
             ctx.fillStyle = "#f1c40f"; ctx.font = "bold 45px 'Courier New', Courier, monospace"; ctx.textAlign = "center";
             ctx.fillText("PAUZA", canvas.width / 2, canvas.height / 2 - 15);
             ctx.fillStyle = "#ffffff"; ctx.font = "18px 'Courier New', Courier, monospace";
-            ctx.fillText("Stiskněte MEZERNÍK pro pokračování", canvas.width / 2, canvas.height / 2 + 30);
+            ctx.fillText("Stiskněte tlačítko PAUZA pro pokračování", canvas.width / 2, canvas.height / 2 + 30);
             ctx.textAlign = "start";
         }
 
@@ -542,7 +571,7 @@
             ctx.fillStyle = "#ffffff"; ctx.font = "22px 'Courier New', Courier, monospace";
             ctx.fillText("Chyceno lilek: " + score, canvas.width / 2, canvas.height / 2 + 20);
             ctx.fillStyle = "#f1c40f"; ctx.font = "18px 'Courier New', Courier, monospace";
-            ctx.fillText("Stiskněte ENTER pro restart", canvas.width / 2, canvas.height / 2 + 70);
+            ctx.fillText("Stiskněte tlačítko [A] pro restart", canvas.width / 2, canvas.height / 2 + 70);
             ctx.textAlign = "start";
         }
 
@@ -555,12 +584,15 @@
         }
 
         function gameLoop() {
+            // Každý snímek zkontrolujeme fyzický ovladač
+            handleGamepadInput();
+
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             drawEnvironment(); 
             
             if (!gameStarted) { drawStartScreen(); requestAnimationFrame(gameLoop); return; }
             if (isGameOver) { updateAndDrawLilky(); drawPlayerWithBasket(); drawUI(); drawGameOver(); requestAnimationFrame(gameLoop); return; }
-            if (isShopOpen) { drawShopScreen(); requestAnimationFrame(gameLoop); return; }
+            if (isShopOpen) { requestAnimationFrame(gameLoop); return; }
             if (isPaused) { updateAndDrawLilky(); drawPlayerWithBasket(); drawUI(); drawPauseScreen(); requestAnimationFrame(gameLoop); return; }
 
             updateAndDrawLilky();
