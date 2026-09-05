@@ -25,6 +25,24 @@
 <body>
     <canvas id="gameCanvas" width="900" height="600"></canvas>
     <script> 
+    // Vytvoří ladicí text na obrazovce
+const debugDiv = document.createElement('div');
+debugDiv.style.position = 'absolute';
+debugDiv.style.top = '10px';
+debugDiv.style.left = '10px';
+debugDiv.style.color = 'red';
+debugDiv.style.fontSize = '20px';
+debugDiv.style.zIndex = '9999';
+debugDiv.textContent = 'Čekám na stisk páčky/klávesy...';
+document.body.appendChild(debugDiv);
+
+window.addEventListener('keydown', (e) => {
+    debugDiv.textContent = 'Stisknuto: ' + e.key + ' (code: ' + e.code + ')';
+});
+
+window.addEventListener('gamepadconnected', (e) => {
+    debugDiv.textContent = 'Gamepad připojen: ' + e.gamepad.id;
+});
     window.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowLeft') {
         // Sem doplň kód pro pohyb doleva
