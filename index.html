@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Egg & Lilek - PSG1 Deluxe Edition</title>
     <style>
         body { 
@@ -19,93 +20,15 @@
             box-shadow: 0 0 35px rgba(0, 0, 0, 0.9);
             background: #1f1f2e; 
             cursor: pointer;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
         }
     </style>
 </head>
 <body>
     <canvas id="gameCanvas" width="900" height="600"></canvas>
     <script> 
-    // Vytvoří ladicí okno na obrazovce
-const debugDiv = document.createElement('div');
-debugDiv.style.position = 'fixed';
-debugDiv.style.top = '10px';
-debugDiv.style.left = '10px';
-debugDiv.style.background = 'black';
-debugDiv.style.color = 'lime';
-debugDiv.style.padding = '10px';
-debugDiv.style.fontSize = '16px';
-debugDiv.style.zIndex = '99999';
-debugDiv.textContent = 'Sleduji vstupy...';
-document.body.appendChild(debugDiv);
-
-function logEvent(name, e) {
-    debugDiv.textContent = `Typ: ${name} | Detail: ${e.key || e.button || e.touches?.length || 'pohyb'}`;
-}
-
-window.addEventListener('keydown', (e) => logEvent('Klávesa', e));
-window.addEventListener('touchstart', (e) => logEvent('Dotyk', e));
-window.addEventListener('mousedown', (e) => logEvent('Myš', e));
-window.addEventListener('pointerdown', (e) => logEvent('Pointer', e));
-window.addEventListener('gamepadconnected', (e) => logEvent('Gamepad', e));
-    // Vytvoří ladicí text na obrazovce
-const debugDiv = document.createElement('div');
-debugDiv.style.position = 'absolute';
-debugDiv.style.top = '10px';
-debugDiv.style.left = '10px';
-debugDiv.style.color = 'red';
-debugDiv.style.fontSize = '20px';
-debugDiv.style.zIndex = '9999';
-debugDiv.textContent = 'Čekám na stisk páčky/klávesy...';
-document.body.appendChild(debugDiv);
-
-window.addEventListener('keydown', (e) => {
-    debugDiv.textContent = 'Stisknuto: ' + e.key + ' (code: ' + e.code + ')';
-});
-
-window.addEventListener('gamepadconnected', (e) => {
-    debugDiv.textContent = 'Gamepad připojen: ' + e.gamepad.id;
-});
-    window.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowLeft') {
-        // Sem doplň kód pro pohyb doleva
-    }
-    if (e.key === 'ArrowRight') {
-        // Sem doplň kód pro pohyb doprava
-    }
-    if (e.key === 'ArrowUp') {
-        // Sem doplň kód pro skok / nahoru
-    }
-});
-    function pollGamepads() {
-    const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
-    for (let i = 0; i < gamepads.length; i++) {
-        const gp = gamepads[i];
-        if (gp) {
-            // Příklad čtení levé páčky (osu X a Y) nebo křížku
-            const moveX = gp.axes[0]; // -1 doleva, 1 doprava
-            const moveY = gp.axes[1]; // -1 nahoru, 1 dolů
-            
-            // Tlačítka (např. skok)
-            const buttonJump = gp.buttons[0].pressed; 
-
-            if (moveX < -0.5) {
-                // Volání funkce pro pohyb doleva
-            } else if (moveX > 0.5) {
-                // Volání funkce pro pohyb doprava
-            }
-            if (moveY < -0.5 || buttonJump) {
-                // Volání funkce pro skok / nahoru
-            }
-        }
-    }
-    requestAnimationFrame(pollGamepads);
-}
-
-// Spuštění sledování ovladače
-window.addEventListener("gamepadconnected", (e) => {
-    console.log("Gamepad připojen:", e.gamepad.id);
-    requestAnimationFrame(pollGamepads);
-});
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
@@ -269,6 +192,7 @@ window.addEventListener("gamepadconnected", (e) => {
             });
         }
 
+        // Ovládání klávesnicí (šipky pro pohyb postavičky)
         window.addEventListener("keydown", (e) => {
             startBackgroundMusic();
             if (!gameStarted) return;
@@ -370,7 +294,6 @@ window.addEventListener("gamepadconnected", (e) => {
 
         function drawPlayerWithBasket() {
             let targetPos = positions[currentPosIndex];
-            // Ještě o kousek zvětšeno
             let width = 72;
             let height = 100;
             
@@ -398,7 +321,7 @@ window.addEventListener("gamepadconnected", (e) => {
         }
 
         let lilky = [];
-        let spawningLilky = []; // Pro animaci chycených lilků padajících dolů
+        let spawningLilky = []; 
         let spawnCounter = 0;
 
         function spawnLilek() {
@@ -424,7 +347,6 @@ window.addEventListener("gamepadconnected", (e) => {
                 }
             }
 
-            // 1. Zpracování padajících/chodících lilků
             for (let i = lilky.length - 1; i >= 0; i--) {
                 let l = lilky[i];
                 let r = rooms[l.roomIndex];
@@ -443,7 +365,6 @@ window.addEventListener("gamepadconnected", (e) => {
                             playSound('catch'); 
                             catchAnimFrames = 12; 
                             
-                            // Spustíme animaci chyceného lilku padajícího dolů z košíku
                             spawningLilky.push({
                                 x: positions[currentPosIndex].x,
                                 y: positions[currentPosIndex].y - 30,
@@ -500,12 +421,11 @@ window.addEventListener("gamepadconnected", (e) => {
                 }
             }
 
-            // 2. Vykreslení a animace chycených lilků (směr dolů do košíku)
             for (let i = spawningLilky.length - 1; i >= 0; i--) {
                 let sl = spawningLilky[i];
                 if (!isPaused && !isGameOver && !isShopOpen) {
                     sl.progress += 0.15;
-                    sl.y += 3; // Pohyb dolů při chycení
+                    sl.y += 3; 
                     if (sl.progress >= 1) {
                         spawningLilky.splice(i, 1);
                         continue;
