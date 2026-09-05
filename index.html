@@ -24,7 +24,37 @@
 </head>
 <body>
     <canvas id="gameCanvas" width="900" height="600"></canvas>
-    <script>
+    <script> 
+    function pollGamepads() {
+    const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+    for (let i = 0; i < gamepads.length; i++) {
+        const gp = gamepads[i];
+        if (gp) {
+            // Příklad čtení levé páčky (osu X a Y) nebo křížku
+            const moveX = gp.axes[0]; // -1 doleva, 1 doprava
+            const moveY = gp.axes[1]; // -1 nahoru, 1 dolů
+            
+            // Tlačítka (např. skok)
+            const buttonJump = gp.buttons[0].pressed; 
+
+            if (moveX < -0.5) {
+                // Volání funkce pro pohyb doleva
+            } else if (moveX > 0.5) {
+                // Volání funkce pro pohyb doprava
+            }
+            if (moveY < -0.5 || buttonJump) {
+                // Volání funkce pro skok / nahoru
+            }
+        }
+    }
+    requestAnimationFrame(pollGamepads);
+}
+
+// Spuštění sledování ovladače
+window.addEventListener("gamepadconnected", (e) => {
+    console.log("Gamepad připojen:", e.gamepad.id);
+    requestAnimationFrame(pollGamepads);
+});
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
