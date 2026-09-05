@@ -25,6 +25,17 @@
 <body>
     <canvas id="gameCanvas" width="900" height="600"></canvas>
     <script> 
+    window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') {
+        // Sem doplň kód pro pohyb doleva
+    }
+    if (e.key === 'ArrowRight') {
+        // Sem doplň kód pro pohyb doprava
+    }
+    if (e.key === 'ArrowUp') {
+        // Sem doplň kód pro skok / nahoru
+    }
+});
     function pollGamepads() {
     const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
     for (let i = 0; i < gamepads.length; i++) {
