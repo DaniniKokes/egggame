@@ -128,11 +128,11 @@
         lilekImg.src = "lilek.png";
 
         const positions = [
-            { x: 340, y: 350, side: 'left' },   
-            { x: 340, y: 480, side: 'left' },   
-            { x: 560, y: 350, side: 'right' },  
-            { x: 560, y: 480, side: 'right' },  
-            { x: 450, y: 565, side: 'center' }  
+            { x: 340, y: 350, side: 'left' },   // 0: Horní levá
+            { x: 340, y: 480, side: 'left' },   // 1: Dolní levá
+            { x: 560, y: 350, side: 'right' },  // 2: Horní pravá
+            { x: 560, y: 480, side: 'right' },  // 3: Dolní pravá
+            { x: 450, y: 565, side: 'center' }  // 4: Startovní pozici (pouze před startem)
         ];
 
         const rooms = [
@@ -194,9 +194,11 @@
             }
 
             if (!isPaused && !isGameOver && !isShopOpen && gameStarted) {
+                // Pokud je náhodou na startu, pošleme ho hned na dolní levou rampu (1)
+                if (currentPosIndex === 4) currentPosIndex = 1;
+
                 if ((axisY < -0.5 || dpadUp) && !prevGamepadState.movedY) {
-                    if (currentPosIndex === 4) currentPosIndex = 1;
-                    else if (currentPosIndex === 1) currentPosIndex = 0;
+                    if (currentPosIndex === 1) currentPosIndex = 0;
                     else if (currentPosIndex === 3) currentPosIndex = 2;
                     prevGamepadState.movedY = true;
                 } else if (axisY >= -0.5 && axisY <= 0.5 && !dpadUp && !dpadDown) {
@@ -206,7 +208,6 @@
                 if ((axisY > 0.5 || dpadDown) && !prevGamepadState.movedYDown) {
                     if (currentPosIndex === 0) currentPosIndex = 1;
                     else if (currentPosIndex === 2) currentPosIndex = 3;
-                    else if (currentPosIndex === 1 || currentPosIndex === 3) currentPosIndex = 4;
                     prevGamepadState.movedYDown = true;
                 } else if (axisY >= -0.5 && axisY <= 0.5 && !dpadDown) {
                     prevGamepadState.movedYDown = false;
@@ -215,7 +216,6 @@
                 if ((axisX < -0.5 || dpadLeft) && !prevGamepadState.movedX) {
                     if (currentPosIndex === 2) currentPosIndex = 0;
                     else if (currentPosIndex === 3) currentPosIndex = 1;
-                    else if (currentPosIndex === 4) currentPosIndex = 1;
                     prevGamepadState.movedX = true;
                 } else if (axisX >= -0.5 && axisX <= 0.5 && !dpadLeft && !dpadRight) {
                     prevGamepadState.movedX = false;
@@ -224,7 +224,6 @@
                 if ((axisX > 0.5 || dpadRight) && !prevGamepadState.movedXRight) {
                     if (currentPosIndex === 0) currentPosIndex = 2;
                     else if (currentPosIndex === 1) currentPosIndex = 3;
-                    else if (currentPosIndex === 4) currentPosIndex = 3;
                     prevGamepadState.movedXRight = true;
                 } else if (axisX >= -0.5 && axisX <= 0.5 && !dpadRight) {
                     prevGamepadState.movedXRight = false;
@@ -316,25 +315,23 @@
             }
             if (isPaused) return;
 
+            if (currentPosIndex === 4) currentPosIndex = 1;
+
             if (e.key === "ArrowUp") {
-                if (currentPosIndex === 4) currentPosIndex = 1;
-                else if (currentPosIndex === 1) currentPosIndex = 0;
+                if (currentPosIndex === 1) currentPosIndex = 0;
                 else if (currentPosIndex === 3) currentPosIndex = 2;
             }
             if (e.key === "ArrowDown") {
                 if (currentPosIndex === 0) currentPosIndex = 1;
                 else if (currentPosIndex === 2) currentPosIndex = 3;
-                else if (currentPosIndex === 1 || currentPosIndex === 3) currentPosIndex = 4;
             }
             if (e.key === "ArrowLeft") {
                 if (currentPosIndex === 2) currentPosIndex = 0;
                 else if (currentPosIndex === 3) currentPosIndex = 1;
-                else if (currentPosIndex === 4) currentPosIndex = 1;
             }
             if (e.key === "ArrowRight") {
                 if (currentPosIndex === 0) currentPosIndex = 2;
                 else if (currentPosIndex === 1) currentPosIndex = 3;
-                else if (currentPosIndex === 4) currentPosIndex = 3;
             }
         });
 
@@ -343,10 +340,10 @@
 
             if (!gameStarted) {
                 if (mouseX >= canvas.width / 2 - 240 && mouseX <= canvas.width / 2 - 20 && mouseY >= canvas.height / 2 - 20 && mouseY <= canvas.height / 2 + 40) {
-                    isConnected = false; freeTrialMode = true; gameStarted = true; playSound('shop'); return;
+                    isConnected = false; freeTrialMode = true; gameStarted = true; currentPosIndex = 1; playSound('shop'); return;
                 }
                 if (mouseX >= canvas.width / 2 + 20 && mouseX <= canvas.width / 2 + 240 && mouseY >= canvas.height / 2 - 20 && mouseY <= canvas.height / 2 + 40) {
-                    isConnected = true; freeTrialMode = false; gameStarted = true; playSound('shop'); return;
+                    isConnected = true; freeTrialMode = false; gameStarted = true; currentPosIndex = 1; playSound('shop'); return;
                 }
                 return;
             }
@@ -361,22 +358,18 @@
             }
 
             if (isShopOpen && !txPending) {
-                // Box 1
-                if (mouseX >= canvas.width / 2 - 270 && mouseX <= canvas.width / 2 - 110 && mouseY >= 160 && mouseY <= 335) {
+                if (mouseX >= canvas.width / 2 - 270 && mouseX <= canvas.width / 2 - 110 && mouseY >= 130 && mouseY <= 340) {
                     activeBox = 1; playSound('shop'); return;
                 }
-                // Box 2 (250 EGG)
-                if (mouseX >= canvas.width / 2 - 80 && mouseX <= canvas.width / 2 + 80 && mouseY >= 160 && mouseY <= 335) {
+                if (mouseX >= canvas.width / 2 - 80 && mouseX <= canvas.width / 2 + 80 && mouseY >= 130 && mouseY <= 340) {
                     if (!unlockedBoxes.box2) { buyBox('box2', 50, 2); } else { activeBox = 2; playSound('shop'); }
                     return;
                 }
-                // Box 3 (500 EGG)
-                if (mouseX >= canvas.width / 2 + 110 && mouseX <= canvas.width / 2 + 270 && mouseY >= 160 && mouseY <= 335) {
+                if (mouseX >= canvas.width / 2 + 110 && mouseX <= canvas.width / 2 + 270 && mouseY >= 130 && mouseY <= 340) {
                     if (!unlockedBoxes.box3) { buyBox('box3', 100, 3); } else { activeBox = 3; playSound('shop'); }
                     return;
                 }
-                // Tlačítko pro návrat
-                if (mouseY >= 430 && mouseY <= 480) {
+                if (mouseY >= 410 && mouseY <= 470) {
                     isShopOpen = false; playSound('shop'); return;
                 }
                 return;
@@ -385,13 +378,15 @@
             if (!isPaused && !isGameOver) {
                 let closestIndex = 0;
                 let minDist = 9999;
-                positions.forEach((pos, idx) => {
+                // Vybíráme jen z horních 4 ramp (0 až 3)
+                for(let idx = 0; idx < 4; idx++) {
+                    let pos = positions[idx];
                     let dist = Math.hypot(mouseX - pos.x, mouseY - pos.y);
                     if (dist < minDist) {
                         minDist = dist;
                         closestIndex = idx;
                     }
-                });
+                }
                 if (minDist < 150) {
                     currentPosIndex = closestIndex;
                 }
@@ -464,7 +459,6 @@
             let rIdx = Math.floor(Math.random() * 4);
             let r = rooms[rIdx];
             
-            // Rychlost se resetuje do rozumných mezí podle aktuální stovky bodů, aby to zpomalilo
             let cycleScore = score % 100;
             let dynamicSpeed = 0.6 + (cycleScore * 0.002);
 
@@ -517,11 +511,9 @@
                                 isGameOver = true; playSound('gameover');
                             }
 
-                            // První shop při 100 bodech
                             if (score >= 100 && score < 250 && !shopTriggered100) {
                                 shopTriggered100 = true; isShopOpen = true; playSound('shop');
                             }
-                            // Druhý shop při 250 bodech pro otevření 500 boxu
                             if (score >= 250 && !shopTriggered250) {
                                 shopTriggered250 = true; isShopOpen = true; playSound('shop');
                             }
@@ -660,7 +652,6 @@
             ctx.fillStyle = "#f1c40f"; ctx.font = "bold 28px 'Courier New', Courier, monospace"; ctx.textAlign = "center";
             ctx.fillText("COMMUNITY SHOP & BASKETS", canvas.width / 2, 70);
 
-            // Pomocná funkce pro přehledné vykreslení boxu v shopu bez přetékání
             const drawShopBox = (bx, title, priceText, statusText, isSelected, borderColor) => {
                 ctx.fillStyle = "#1c1c28"; 
                 ctx.fillRect(bx, 130, 160, 210);
@@ -681,14 +672,9 @@
                 ctx.fillText(statusText, bx + 80, 290);
             };
 
-            // Box 1
             drawShopBox(canvas.width / 2 - 270, "100 EGG BOX", "ZDARMA", activeBox === 1 ? "VYBRÁNO" : "VYBRAT", activeBox === 1, "#3498db");
-
-            // Box 2 (250 EGG)
             let box2Status = activeBox === 2 ? "VYBRÁNO" : (unlockedBoxes.box2 ? "VYBRAT" : "KOUPIT");
             drawShopBox(canvas.width / 2 - 80, "250 EGG BOX", "50 PLAY", box2Status, activeBox === 2, "#f1c40f");
-
-            // Box 3 (500 EGG)
             let box3Status = activeBox === 3 ? "VYBRÁNO" : (unlockedBoxes.box3 ? "VYBRAT" : "KOUPIT");
             drawShopBox(canvas.width / 2 + 110, "500 EGG BOX", "100 PLAY", box3Status, activeBox === 3, "#e74c3c");
 
