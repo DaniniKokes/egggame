@@ -132,7 +132,7 @@
             { x: 340, y: 480, side: 'left' },   // 1: Dolní levá
             { x: 560, y: 350, side: 'right' },  // 2: Horní pravá
             { x: 560, y: 480, side: 'right' },  // 3: Dolní pravá
-            { x: 450, y: 565, side: 'center' }  // 4: Startovní pozici (pouze před startem)
+            { x: 450, y: 565, side: 'center' }  // 4: Startovní pozice
         ];
 
         const rooms = [
@@ -194,7 +194,6 @@
             }
 
             if (!isPaused && !isGameOver && !isShopOpen && gameStarted) {
-                // Pokud je náhodou na startu, pošleme ho hned na dolní levou rampu (1)
                 if (currentPosIndex === 4) currentPosIndex = 1;
 
                 if ((axisY < -0.5 || dpadUp) && !prevGamepadState.movedY) {
@@ -305,7 +304,12 @@
                 return;
             }
             if (isShopOpen) {
-                if (!txPending && (e.key === "Escape" || e.key === "Enter")) isShopOpen = false;
+                if (!txPending && (e.key === "Escape" || e.key === "Enter")) {
+                    isShopOpen = false;
+                    lilky = [];
+                    spawningLilky = [];
+                    spawnCounter = 0;
+                }
                 return;
             }
             if (e.code === "Space") {
@@ -370,7 +374,12 @@
                     return;
                 }
                 if (mouseY >= 410 && mouseY <= 470) {
-                    isShopOpen = false; playSound('shop'); return;
+                    isShopOpen = false;
+                    lilky = [];
+                    spawningLilky = [];
+                    spawnCounter = 0;
+                    playSound('shop');
+                    return;
                 }
                 return;
             }
@@ -378,7 +387,6 @@
             if (!isPaused && !isGameOver) {
                 let closestIndex = 0;
                 let minDist = 9999;
-                // Vybíráme jen z horních 4 ramp (0 až 3)
                 for(let idx = 0; idx < 4; idx++) {
                     let pos = positions[idx];
                     let dist = Math.hypot(mouseX - pos.x, mouseY - pos.y);
