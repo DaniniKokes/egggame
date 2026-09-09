@@ -148,13 +148,13 @@
         let isGameOver = false;
         let isPaused = false;
         let isShopOpen = false;
-        let shopTriggered = false; 
+        let shopTriggered100 = false; 
+        let shopTriggered250 = false; 
         let unlockedBoxes = { box1: true, box2: false, box3: false };
         let activeBox = 1; 
         let txPending = false;
         let txMessage = "";
         let catchAnimFrames = 0; 
-        let baseSpeed = 0.6; 
         let animTimer = 0;
 
         let prevGamepadState = { buttons: {}, axes: {} };
@@ -251,7 +251,6 @@
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
 
-            // Kreslení původních dřevěných ramp (balkónků)
             const drawReplicaPlatform = (x, y) => {
                 ctx.save();
                 ctx.fillStyle = "#3b2f2f";
@@ -362,17 +361,21 @@
             }
 
             if (isShopOpen && !txPending) {
+                // Box 1
                 if (mouseX >= canvas.width / 2 - 270 && mouseX <= canvas.width / 2 - 110 && mouseY >= 160 && mouseY <= 335) {
                     activeBox = 1; playSound('shop'); return;
                 }
+                // Box 2 (250 EGG)
                 if (mouseX >= canvas.width / 2 - 80 && mouseX <= canvas.width / 2 + 80 && mouseY >= 160 && mouseY <= 335) {
                     if (!unlockedBoxes.box2) { buyBox('box2', 50, 2); } else { activeBox = 2; playSound('shop'); }
                     return;
                 }
+                // Box 3 (500 EGG)
                 if (mouseX >= canvas.width / 2 + 110 && mouseX <= canvas.width / 2 + 270 && mouseY >= 160 && mouseY <= 335) {
                     if (!unlockedBoxes.box3) { buyBox('box3', 100, 3); } else { activeBox = 3; playSound('shop'); }
                     return;
                 }
+                // Tlačítko pro návrat
                 if (mouseY >= 430 && mouseY <= 480) {
                     isShopOpen = false; playSound('shop'); return;
                 }
@@ -461,8 +464,9 @@
             let rIdx = Math.floor(Math.random() * 4);
             let r = rooms[rIdx];
             
-            let currentCycleScore = score % 100;
-            let dynamicSpeed = 0.6 + (currentCycleScore * 0.003);
+            // Rychlost se resetuje do rozumných mezí podle aktuální stovky bodů, aby to zpomalilo
+            let cycleScore = score % 100;
+            let dynamicSpeed = 0.6 + (cycleScore * 0.002);
 
             lilky.push({
                 roomIndex: rIdx, x: r.startX, y: r.y - 10, isLeft: r.side === 'left',
@@ -473,7 +477,8 @@
         function updateAndDrawLilky() {
             if (!isPaused && !isGameOver && !isShopOpen) {
                 spawnCounter++;
-                let currentSpawnInterval = Math.max(70, 150 - (score * 2));
+                let cycleScore = score % 100;
+                let currentSpawnInterval = Math.max(75, 150 - (cycleScore * 0.8));
                 if (spawnCounter > currentSpawnInterval) { 
                     spawnLilek();
                     spawnCounter = 0;
@@ -507,15 +512,18 @@
 
                             lilky.splice(i, 1); 
                             score++;
-                            
-                            let currentCycleScore = score % 100;
-                            baseSpeed = 0.6 + (currentCycleScore * 0.003); 
 
                             if (freeTrialMode && score >= FREE_TRIAL_LIMIT) {
                                 isGameOver = true; playSound('gameover');
                             }
-                            if (score >= 100 && !shopTriggered) {
-                                shopTriggered = true; isShopOpen = true; playSound('shop');
+
+                            // První shop při 100 bodech
+                            if (score >= 100 && score < 250 && !shopTriggered100) {
+                                shopTriggered100 = true; isShopOpen = true; playSound('shop');
+                            }
+                            // Druhý shop při 250 bodech pro otevření 500 boxu
+                            if (score >= 250 && !shopTriggered250) {
+                                shopTriggered250 = true; isShopOpen = true; playSound('shop');
                             }
                             continue;
                         } else {
@@ -649,35 +657,47 @@
         function drawShopScreen() {
             ctx.fillStyle = "rgba(10, 10, 15, 0.95)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "#f1c40f"; ctx.font = "bold 30px 'Courier New', Courier, monospace"; ctx.textAlign = "center";
-            ctx.fillText("COMMUNITY SHOP & BASKETS", canvas.width / 2, 75);
+            ctx.fillStyle = "#f1c40f"; ctx.font = "bold 28px 'Courier New', Courier, monospace"; ctx.textAlign = "center";
+            ctx.fillText("COMMUNITY SHOP & BASKETS", canvas.width / 2, 70);
 
-            ctx.fillStyle = "#1c1c28"; ctx.fillRect(canvas.width / 2 - 270, 160, 160, 175);
-            ctx.strokeStyle = activeBox === 1 ? "#2ecc71" : "#3498db"; ctx.strokeRect(canvas.width / 2 - 270, 160, 160, 175);
-            ctx.fillStyle = "#3498db"; ctx.fillText("100 EGG BOX", canvas.width / 2 - 190, 190);
-            ctx.fillStyle = "#fff"; ctx.fillText("FREE", canvas.width / 2 - 190, 245);
-            ctx.fillStyle = activeBox === 1 ? "#2ecc71" : "#fff"; ctx.fillText(activeBox === 1 ? "SELECTED" : "SELECT", canvas.width / 2 - 190, 295);
+            // Pomocná funkce pro přehledné vykreslení boxu v shopu bez přetékání
+            const drawShopBox = (bx, title, priceText, statusText, isSelected, borderColor) => {
+                ctx.fillStyle = "#1c1c28"; 
+                ctx.fillRect(bx, 130, 160, 210);
+                ctx.strokeStyle = isSelected ? "#2ecc71" : borderColor;
+                ctx.lineWidth = isSelected ? 3 : 2;
+                ctx.strokeRect(bx, 130, 160, 210);
 
-            ctx.fillStyle = "#1c1c28"; ctx.fillRect(canvas.width / 2 - 80, 160, 160, 175);
-            ctx.strokeStyle = activeBox === 2 ? "#2ecc71" : (unlockedBoxes.box2 ? "#3498db" : "#f1c40f"); ctx.strokeRect(canvas.width / 2 - 80, 160, 160, 175);
-            ctx.fillStyle = "#f1c40f"; ctx.fillText("250 EGG BOX", canvas.width / 2, 190);
-            ctx.fillStyle = "#fff"; ctx.fillText("50 PLAY", canvas.width / 2, 220);
-            ctx.fillStyle = activeBox === 2 ? "#2ecc71" : (unlockedBoxes.box2 ? "#3498db" : "#f1c40f");
-            ctx.fillText(activeBox === 2 ? "SELECTED" : (unlockedBoxes.box2 ? "SELECT" : "BUY"), canvas.width / 2, 295);
+                ctx.fillStyle = borderColor;
+                ctx.font = "bold 15px 'Courier New', Courier, monospace";
+                ctx.fillText(title, bx + 80, 165);
 
-            ctx.fillStyle = "#1c1c28"; ctx.fillRect(canvas.width / 2 + 110, 160, 160, 175);
-            ctx.strokeStyle = activeBox === 3 ? "#2ecc71" : (unlockedBoxes.box3 ? "#3498db" : "#e74c3c"); ctx.strokeRect(canvas.width / 2 + 110, 160, 160, 175);
-            ctx.fillStyle = "#e74c3c"; ctx.fillText("500 EGG BOX", canvas.width / 2 + 190, 190);
-            ctx.fillStyle = "#fff"; ctx.fillText("100 PLAY", canvas.width / 2 + 190, 220);
-            ctx.fillStyle = activeBox === 3 ? "#2ecc71" : (unlockedBoxes.box3 ? "#3498db" : "#e74c3c");
-            ctx.fillText(activeBox === 3 ? "SELECTED" : (unlockedBoxes.box3 ? "SELECT" : "BUY"), canvas.width / 2 + 190, 295);
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 14px 'Courier New', Courier, monospace";
+                ctx.fillText(priceText, bx + 80, 210);
+
+                ctx.fillStyle = isSelected ? "#2ecc71" : "#f1c40f";
+                ctx.font = "bold 15px 'Courier New', Courier, monospace";
+                ctx.fillText(statusText, bx + 80, 290);
+            };
+
+            // Box 1
+            drawShopBox(canvas.width / 2 - 270, "100 EGG BOX", "ZDARMA", activeBox === 1 ? "VYBRÁNO" : "VYBRAT", activeBox === 1, "#3498db");
+
+            // Box 2 (250 EGG)
+            let box2Status = activeBox === 2 ? "VYBRÁNO" : (unlockedBoxes.box2 ? "VYBRAT" : "KOUPIT");
+            drawShopBox(canvas.width / 2 - 80, "250 EGG BOX", "50 PLAY", box2Status, activeBox === 2, "#f1c40f");
+
+            // Box 3 (500 EGG)
+            let box3Status = activeBox === 3 ? "VYBRÁNO" : (unlockedBoxes.box3 ? "VYBRAT" : "KOUPIT");
+            drawShopBox(canvas.width / 2 + 110, "500 EGG BOX", "100 PLAY", box3Status, activeBox === 3, "#e74c3c");
 
             if (txMessage !== "") {
                 ctx.fillStyle = "#e67e22"; ctx.font = "bold 16px 'Courier New', Courier, monospace";
                 ctx.fillText(txMessage, canvas.width / 2, 385);
             }
             ctx.fillStyle = "#aaa"; ctx.font = "14px 'Courier New', Courier, monospace";
-            ctx.fillText("Click here or press ENTER to return to game", canvas.width / 2, 450);
+            ctx.fillText("Stiskněte ESC nebo ENTER pro návrat", canvas.width / 2, 445);
             ctx.textAlign = "start";
         }
 
@@ -707,8 +727,9 @@
 
         function restartGame() {
             gameStarted = false; freeTrialMode = false;
-            score = 0; lives = 3; baseSpeed = 0.6; lilky = []; spawningLilky = []; spawnCounter = 0;
-            isGameOver = false; isPaused = false; isShopOpen = false; shopTriggered = false;
+            score = 0; lives = 3; lilky = []; spawningLilky = []; spawnCounter = 0;
+            isGameOver = false; isPaused = false; isShopOpen = false; 
+            shopTriggered100 = false; shopTriggered250 = false;
             unlockedBoxes = { box1: true, box2: false, box3: false }; activeBox = 1;
             currentPosIndex = 4;
         }
