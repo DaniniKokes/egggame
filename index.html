@@ -270,6 +270,19 @@
             drawReplicaPlatform(560, 480);
         }
 
+        function drawAtmosphereOverlay() {
+            if (!gameStarted || isShopOpen || isGameOver) return;
+            if (score >= 250) {
+                // Tma (třetí kolo)
+                ctx.fillStyle = "rgba(5, 5, 20, 0.45)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            } else if (score >= 100) {
+                // Šero (druhé kolo)
+                ctx.fillStyle = "rgba(10, 10, 30, 0.22)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+
         function drawTopBoxes() {
             let startX = canvas.width / 2 - 165;
             let boxWidth = 100;
@@ -549,6 +562,13 @@
                 ctx.save();
                 ctx.translate(l.x, l.y);
                 ctx.rotate(l.angle);
+                
+                // Přidání svítícího efektu (glow) pro šero a tmu
+                if (score >= 100) {
+                    ctx.shadowBlur = score >= 250 ? 15 : 10;
+                    ctx.shadowColor = score >= 250 ? "#00ffff" : "#da70d6";
+                }
+
                 if (lilekImg.complete && lilekImg.naturalWidth !== 0) {
                     ctx.drawImage(lilekImg, -14, -14, 28, 28);
                 } else {
@@ -574,6 +594,10 @@
                 }
                 ctx.save();
                 ctx.translate(sl.x, sl.y);
+                if (score >= 100) {
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = "#da70d6";
+                }
                 if (lilekImg.complete && lilekImg.naturalWidth !== 0) {
                     ctx.drawImage(lilekImg, -14, -14, 28, 28);
                 } else {
@@ -743,6 +767,7 @@
             if (isGameOver) { 
                 updateAndDrawLilky(); 
                 drawPlayerWithBasket(); 
+                drawAtmosphereOverlay();
                 drawUI(); 
                 drawGameOver(); 
                 drawVirtualCursor();
@@ -755,10 +780,11 @@
                 requestAnimationFrame(gameLoop); 
                 return; 
             }
-            if (isPaused) { updateAndDrawLilky(); drawPlayerWithBasket(); drawUI(); drawPauseScreen(); requestAnimationFrame(gameLoop); return; }
+            if (isPaused) { updateAndDrawLilky(); drawPlayerWithBasket(); drawAtmosphereOverlay(); drawUI(); drawPauseScreen(); requestAnimationFrame(gameLoop); return; }
 
             updateAndDrawLilky();
             drawPlayerWithBasket();      
+            drawAtmosphereOverlay();
             drawUI();
             requestAnimationFrame(gameLoop);
         }
