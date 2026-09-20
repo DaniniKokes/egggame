@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="cs">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -81,12 +81,6 @@
                 gain.gain.setValueAtTime(0.15, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
                 osc.start(now); osc.stop(now + 0.2);
-            } else if (type === 'hover') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(800, now);
-                gain.gain.setValueAtTime(0.02, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-                osc.start(now); osc.stop(now + 0.05);
             }
         }
 
@@ -112,27 +106,18 @@
 
         let gameStarted = false;
 
-        const bgImg = new Image();
-        bgImg.src = "hlavni stranka.png";
-
-        const playerLeftImg = new Image();
-        playerLeftImg.src = "player.png l.png";
-
-        const playerRightImg = new Image();
-        playerRightImg.src = "player.png r.png";
-
-        const playerCenterImg = new Image();
-        playerCenterImg.src = "player1.png";
-
-        const lilekImg = new Image();
-        lilekImg.src = "lilek.png";
+        const bgImg = new Image(); bgImg.src = "hlavni stranka.png";
+        const playerLeftImg = new Image(); playerLeftImg.src = "player.png l.png";
+        const playerRightImg = new Image(); playerRightImg.src = "player.png r.png";
+        const playerCenterImg = new Image(); playerCenterImg.src = "player1.png";
+        const lilekImg = new Image(); lilekImg.src = "lilek.png";
 
         const positions = [
-            { x: 340, y: 350, side: 'left' },   // 0: Horní levá
-            { x: 340, y: 480, side: 'left' },   // 1: Dolní levá
-            { x: 560, y: 350, side: 'right' },  // 2: Horní pravá
-            { x: 560, y: 480, side: 'right' },  // 3: Dolní pravá
-            { x: 450, y: 565, side: 'center' }  // 4: Startovní pozice
+            { x: 340, y: 350, side: 'left' },
+            { x: 340, y: 480, side: 'left' },
+            { x: 560, y: 350, side: 'right' },
+            { x: 560, y: 480, side: 'right' },
+            { x: 450, y: 565, side: 'center' }
         ];
 
         const rooms = [
@@ -156,14 +141,12 @@
         let txMessage = "";
         let catchAnimFrames = 0; 
         let animTimer = 0;
-
         let prevGamepadState = { buttons: {}, axes: {} };
 
         function handleGamepadInput() {
             const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
             if (!gamepads[0]) return;
             const gp = gamepads[0];
-
             const buttonPressed = (index) => {
                 let pressed = gp.buttons[index] && gp.buttons[index].pressed;
                 let wasPressed = prevGamepadState.buttons[index] || false;
@@ -172,10 +155,8 @@
             };
 
             startBackgroundMusic();
-
             let axisX = gp.axes[0] || 0; 
             let axisY = gp.axes[1] || 0; 
-
             let dpadUp = gp.buttons[12] && gp.buttons[12].pressed;
             let dpadDown = gp.buttons[13] && gp.buttons[13].pressed;
             let dpadLeft = gp.buttons[14] && gp.buttons[14].pressed;
@@ -188,14 +169,12 @@
                 if (dpadRight) cursorX += cursorSpeed;
                 if (dpadUp) cursorY -= cursorSpeed;
                 if (dpadDown) cursorY += cursorSpeed;
-
                 cursorX = Math.max(0, Math.min(canvas.width, cursorX));
                 cursorY = Math.max(0, Math.min(canvas.height, cursorY));
             }
 
             if (!isPaused && !isGameOver && !isShopOpen && gameStarted) {
                 if (currentPosIndex === 4) currentPosIndex = 1;
-
                 if ((axisY < -0.5 || dpadUp) && !prevGamepadState.movedY) {
                     if (currentPosIndex === 1) currentPosIndex = 0;
                     else if (currentPosIndex === 3) currentPosIndex = 2;
@@ -203,7 +182,6 @@
                 } else if (axisY >= -0.5 && axisY <= 0.5 && !dpadUp && !dpadDown) {
                     prevGamepadState.movedY = false;
                 }
-
                 if ((axisY > 0.5 || dpadDown) && !prevGamepadState.movedYDown) {
                     if (currentPosIndex === 0) currentPosIndex = 1;
                     else if (currentPosIndex === 2) currentPosIndex = 3;
@@ -211,7 +189,6 @@
                 } else if (axisY >= -0.5 && axisY <= 0.5 && !dpadDown) {
                     prevGamepadState.movedYDown = false;
                 }
-
                 if ((axisX < -0.5 || dpadLeft) && !prevGamepadState.movedX) {
                     if (currentPosIndex === 2) currentPosIndex = 0;
                     else if (currentPosIndex === 3) currentPosIndex = 1;
@@ -219,7 +196,6 @@
                 } else if (axisX >= -0.5 && axisX <= 0.5 && !dpadLeft && !dpadRight) {
                     prevGamepadState.movedX = false;
                 }
-
                 if ((axisX > 0.5 || dpadRight) && !prevGamepadState.movedXRight) {
                     if (currentPosIndex === 0) currentPosIndex = 2;
                     else if (currentPosIndex === 1) currentPosIndex = 3;
@@ -229,15 +205,9 @@
                 }
             }
 
-            if (buttonPressed(0) || buttonPressed(9)) {
-                triggerClickAt(cursorX, cursorY);
-            }
-
+            if (buttonPressed(0) || buttonPressed(9)) { triggerClickAt(cursorX, cursorY); }
             if (buttonPressed(3) || buttonPressed(8)) {
-                if (gameStarted && !isGameOver && !isShopOpen) {
-                    isPaused = !isPaused;
-                    playSound('shop');
-                }
+                if (gameStarted && !isGameOver && !isShopOpen) { isPaused = !isPaused; playSound('shop'); }
             }
         }
 
@@ -245,22 +215,20 @@
             if (bgImg.complete && bgImg.naturalWidth !== 0) {
                 ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
             } else {
-                ctx.fillStyle = "#12121a";
+                // Náhradní pozadí, pokud chybí obrázek
+                ctx.fillStyle = "#181824";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "#2d2d42";
+                ctx.fillRect(50, 200, 250, 250);
+                ctx.fillRect(600, 200, 250, 250);
             }
 
             const drawReplicaPlatform = (x, y) => {
                 ctx.save();
-                ctx.fillStyle = "#3b2f2f";
-                ctx.fillRect(x - 45, y, 90, 12);
-                ctx.fillStyle = "#5c4033";
-                ctx.fillRect(x - 45, y + 12, 90, 5);
-                ctx.fillStyle = "#221919";
-                ctx.fillRect(x - 30, y + 17, 10, 8);
-                ctx.fillRect(x + 20, y + 17, 10, 8);
-                ctx.strokeStyle = "#8b5a2b";
-                ctx.lineWidth = 2;
-                ctx.strokeRect(x - 45, y, 90, 12);
+                ctx.fillStyle = "#3b2f2f"; ctx.fillRect(x - 45, y, 90, 12);
+                ctx.fillStyle = "#5c4033"; ctx.fillRect(x - 45, y + 12, 90, 5);
+                ctx.fillStyle = "#221919"; ctx.fillRect(x - 30, y + 17, 10, 8); ctx.fillRect(x + 20, y + 17, 10, 8);
+                ctx.strokeStyle = "#8b5a2b"; ctx.lineWidth = 2; ctx.strokeRect(x - 45, y, 90, 12);
                 ctx.restore();
             };
 
@@ -273,21 +241,14 @@
         function drawAtmosphereOverlay() {
             if (!gameStarted || isShopOpen || isGameOver) return;
             if (score >= 250) {
-                // Tma (třetí kolo)
-                ctx.fillStyle = "rgba(5, 5, 20, 0.45)";
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "rgba(5, 5, 20, 0.45)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
             } else if (score >= 100) {
-                // Šero (druhé kolo)
-                ctx.fillStyle = "rgba(10, 10, 30, 0.22)";
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "rgba(10, 10, 30, 0.22)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
         }
 
         function drawTopBoxes() {
-            let startX = canvas.width / 2 - 165;
-            let boxWidth = 100;
-            let boxHeight = 45;
-            let y = 15;
+            let startX = canvas.width / 2 - 165, boxWidth = 100, boxHeight = 45, y = 15;
             const boxesData = [
                 { id: 1, name: "100 EGG", unlocked: true },
                 { id: 2, name: "250 EGG", unlocked: unlockedBoxes.box2 },
@@ -299,8 +260,7 @@
                 ctx.fillRect(x, y + 10, boxWidth, boxHeight - 10);
                 ctx.fillStyle = activeBox === b.id ? "#5dade2" : (b.unlocked ? "#af7ac5" : "#3b3b4f");
                 ctx.fillRect(x - 4, y, boxWidth + 8, 12);
-                ctx.strokeStyle = b.unlocked ? "#f1c40f" : "#444";
-                ctx.lineWidth = 2;
+                ctx.strokeStyle = b.unlocked ? "#f1c40f" : "#444"; ctx.lineWidth = 2;
                 ctx.strokeRect(x, y + 10, boxWidth, boxHeight - 10);
                 ctx.strokeRect(x - 4, y, boxWidth + 8, 12);
                 ctx.fillStyle = b.unlocked ? "#ffffff" : "#777";
@@ -318,43 +278,21 @@
             }
             if (isShopOpen) {
                 if (!txPending && (e.key === "Escape" || e.key === "Enter")) {
-                    isShopOpen = false;
-                    lilky = [];
-                    spawningLilky = [];
-                    spawnCounter = 0;
+                    isShopOpen = false; lilky = []; spawningLilky = []; spawnCounter = 0;
                 }
                 return;
             }
-            if (e.code === "Space") {
-                isPaused = !isPaused;
-                playSound('shop');
-                return;
-            }
+            if (e.code === "Space") { isPaused = !isPaused; playSound('shop'); return; }
             if (isPaused) return;
-
             if (currentPosIndex === 4) currentPosIndex = 1;
-
-            if (e.key === "ArrowUp") {
-                if (currentPosIndex === 1) currentPosIndex = 0;
-                else if (currentPosIndex === 3) currentPosIndex = 2;
-            }
-            if (e.key === "ArrowDown") {
-                if (currentPosIndex === 0) currentPosIndex = 1;
-                else if (currentPosIndex === 2) currentPosIndex = 3;
-            }
-            if (e.key === "ArrowLeft") {
-                if (currentPosIndex === 2) currentPosIndex = 0;
-                else if (currentPosIndex === 3) currentPosIndex = 1;
-            }
-            if (e.key === "ArrowRight") {
-                if (currentPosIndex === 0) currentPosIndex = 2;
-                else if (currentPosIndex === 1) currentPosIndex = 3;
-            }
+            if (e.key === "ArrowUp") { if (currentPosIndex === 1) currentPosIndex = 0; else if (currentPosIndex === 3) currentPosIndex = 2; }
+            if (e.key === "ArrowDown") { if (currentPosIndex === 0) currentPosIndex = 1; else if (currentPosIndex === 2) currentPosIndex = 3; }
+            if (e.key === "ArrowLeft") { if (currentPosIndex === 2) currentPosIndex = 0; else if (currentPosIndex === 3) currentPosIndex = 1; }
+            if (e.key === "ArrowRight") { if (currentPosIndex === 0) currentPosIndex = 2; else if (currentPosIndex === 1) currentPosIndex = 3; }
         });
 
         function triggerClickAt(mouseX, mouseY) {
             startBackgroundMusic();
-
             if (!gameStarted) {
                 if (mouseX >= canvas.width / 2 - 240 && mouseX <= canvas.width / 2 - 20 && mouseY >= canvas.height / 2 - 20 && mouseY <= canvas.height / 2 + 40) {
                     isConnected = false; freeTrialMode = true; gameStarted = true; currentPosIndex = 1; playSound('shop'); return;
@@ -364,16 +302,12 @@
                 }
                 return;
             }
-
             if (isGameOver) {
                 if (mouseX >= canvas.width / 2 - 120 && mouseX <= canvas.width / 2 + 120 && mouseY >= canvas.height / 2 + 40 && mouseY <= canvas.height / 2 + 100) {
-                    restartGame();
-                    playSound('shop');
-                    return;
+                    restartGame(); playSound('shop'); return;
                 }
                 return;
             }
-
             if (isShopOpen && !txPending) {
                 if (mouseX >= canvas.width / 2 - 270 && mouseX <= canvas.width / 2 - 110 && mouseY >= 130 && mouseY <= 340) {
                     activeBox = 1; playSound('shop'); return;
@@ -387,42 +321,27 @@
                     return;
                 }
                 if (mouseY >= 410 && mouseY <= 470) {
-                    isShopOpen = false;
-                    lilky = [];
-                    spawningLilky = [];
-                    spawnCounter = 0;
-                    playSound('shop');
-                    return;
+                    isShopOpen = false; lilky = []; spawningLilky = []; spawnCounter = 0; playSound('shop'); return;
                 }
                 return;
             }
-
             if (!isPaused && !isGameOver) {
-                let closestIndex = 0;
-                let minDist = 9999;
-                for(let idx = 0; idx < 4; idx++) {
+                let closestIndex = 0, minDist = 9999;
+                for (let idx = 0; idx < 4; idx++) {
                     let pos = positions[idx];
                     let dist = Math.hypot(mouseX - pos.x, mouseY - pos.y);
-                    if (dist < minDist) {
-                        minDist = dist;
-                        closestIndex = idx;
-                    }
+                    if (dist < minDist) { minDist = dist; closestIndex = idx; }
                 }
-                if (minDist < 150) {
-                    currentPosIndex = closestIndex;
-                }
+                if (minDist < 150) { currentPosIndex = closestIndex; }
             }
         }
 
         window.addEventListener("click", (e) => {
             let rect = canvas.getBoundingClientRect();
-            let scaleX = canvas.width / rect.width;
-            let scaleY = canvas.height / rect.height;
-            let mouseX = (e.clientX - rect.left) * scaleX;
-            let mouseY = (e.clientY - rect.top) * scaleY;
-            cursorX = mouseX;
-            cursorY = mouseY;
-            triggerClickAt(mouseX, mouseY);
+            let scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
+            cursorX = (e.clientX - rect.left) * scaleX;
+            cursorY = (e.clientY - rect.top) * scaleY;
+            triggerClickAt(cursorX, cursorY);
         });
 
         function buyBox(boxKey, price, boxId) {
@@ -446,18 +365,13 @@
 
         function drawPlayerWithBasket() {
             let targetPos = positions[currentPosIndex];
-            let width = 72;
-            let height = 100;
-            
+            let width = 72, height = 100;
             animTimer += 0.1;
             let bounce = Math.sin(animTimer) * 2;
             let shake = catchAnimFrames > 0 ? (Math.random() * 6 - 3) : 0;
             if (catchAnimFrames > 0) catchAnimFrames--;
-
             let renderX = targetPos.x - width / 2 + shake;
             let renderY = targetPos.y - height + 10 + bounce;
-
-            ctx.save();
             
             let imgToDraw = playerCenterImg;
             if (targetPos.side === 'left') imgToDraw = playerLeftImg;
@@ -466,23 +380,21 @@
             if (imgToDraw.complete && imgToDraw.naturalWidth !== 0) {
                 ctx.drawImage(imgToDraw, renderX, renderY, width, height);
             } else {
-                ctx.fillStyle = "#f1c40f";
+                // Náhradní postavička (žlutý obdélník s košíkem), pokud chybí obrázky
+                ctx.fillStyle = "#f1c40f"; 
                 ctx.fillRect(renderX, renderY, width, height);
+                ctx.fillStyle = "#d35400";
+                ctx.fillRect(renderX + 10, renderY + 50, 52, 35);
             }
-            ctx.restore();
         }
 
-        let lilky = [];
-        let spawningLilky = []; 
-        let spawnCounter = 0;
+        let lilky = [], spawningLilky = [], spawnCounter = 0;
 
         function spawnLilek() {
             let rIdx = Math.floor(Math.random() * 4);
             let r = rooms[rIdx];
-            
             let cycleScore = score % 100;
             let dynamicSpeed = 0.6 + (cycleScore * 0.002);
-
             lilky.push({
                 roomIndex: rIdx, x: r.startX, y: r.y - 10, isLeft: r.side === 'left',
                 speed: dynamicSpeed, state: 'walking', angle: 0, counted: false
@@ -494,115 +406,66 @@
                 spawnCounter++;
                 let cycleScore = score % 100;
                 let currentSpawnInterval = Math.max(75, 150 - (cycleScore * 0.8));
-                if (spawnCounter > currentSpawnInterval) { 
-                    spawnLilek();
-                    spawnCounter = 0;
-                }
+                if (spawnCounter > currentSpawnInterval) { spawnLilek(); spawnCounter = 0; }
             }
-
             for (let i = lilky.length - 1; i >= 0; i--) {
-                let l = lilky[i];
-                let r = rooms[l.roomIndex];
-
+                let l = lilky[i], r = rooms[l.roomIndex];
                 if (!isPaused && !isGameOver && !isShopOpen) {
                     if (l.state === 'walking') {
                         l.x += l.isLeft ? l.speed : -l.speed;
-                        l.y = r.y - 10; 
+                        l.y = r.y - 10;
                         l.angle += l.isLeft ? 0.04 : -0.04;
-                        
-                        if ((l.isLeft && l.x >= r.endX) || (!l.isLeft && l.x <= r.endX)) {
-                            l.state = 'at_balcony';
-                        }
+                        if ((l.isLeft && l.x >= r.endX) || (!l.isLeft && l.x <= r.endX)) { l.state = 'at_balcony'; }
                     } else if (l.state === 'at_balcony') {
                         if (currentPosIndex === l.roomIndex) {
-                            playSound('catch'); 
-                            catchAnimFrames = 12; 
-                            
+                            playSound('catch'); catchAnimFrames = 12;
                             spawningLilky.push({
                                 x: positions[currentPosIndex].x,
                                 y: positions[currentPosIndex].y - 30,
                                 targetY: positions[currentPosIndex].y + 10,
                                 progress: 0
                             });
-
-                            lilky.splice(i, 1); 
-                            score++;
-
-                            if (freeTrialMode && score >= FREE_TRIAL_LIMIT) {
-                                isGameOver = true; playSound('gameover');
-                            }
-
-                            if (score >= 100 && score < 250 && !shopTriggered100) {
-                                shopTriggered100 = true; isShopOpen = true; playSound('shop');
-                            }
-                            if (score >= 250 && !shopTriggered250) {
-                                shopTriggered250 = true; isShopOpen = true; playSound('shop');
-                            }
+                            lilky.splice(i, 1); score++;
+                            if (freeTrialMode && score >= FREE_TRIAL_LIMIT) { isGameOver = true; playSound('gameover'); }
+                            if (score >= 100 && score < 250 && !shopTriggered100) { shopTriggered100 = true; isShopOpen = true; playSound('shop'); }
+                            if (score >= 250 && !shopTriggered250) { shopTriggered250 = true; isShopOpen = true; playSound('shop'); }
                             continue;
-                        } else {
-                            l.state = 'falling';
-                        }
+                        } else { l.state = 'falling'; }
                     } else if (l.state === 'falling') {
-                        l.y += 6; 
-                        l.angle += 0.1;
-                        let groundY = canvas.height - 15; 
+                        l.y += 6; l.angle += 0.1;
+                        let groundY = canvas.height - 15;
                         if (l.y >= groundY) {
-                            l.y = groundY;
-                            l.state = 'ground';
-                            if (!l.counted) {
-                                playSound('drop'); 
-                                lives--;
-                                l.counted = true;
-                                if (lives <= 0) { playSound('gameover'); isGameOver = true; }
-                            }
+                            l.y = groundY; l.state = 'ground';
+                            if (!l.counted) { playSound('drop'); lives--; l.counted = true; if (lives <= 0) { playSound('gameover'); isGameOver = true; } }
                         }
                     }
                 }
-
                 ctx.save();
-                ctx.translate(l.x, l.y);
-                ctx.rotate(l.angle);
+                ctx.translate(l.x, l.y); ctx.rotate(l.angle);
+                if (score >= 100) { ctx.shadowBlur = score >= 250 ? 15 : 10; ctx.shadowColor = score >= 250 ? "#00ffff" : "#da70d6"; }
                 
-                // Přidání svítícího efektu (glow) pro šero a tmu
-                if (score >= 100) {
-                    ctx.shadowBlur = score >= 250 ? 15 : 10;
-                    ctx.shadowColor = score >= 250 ? "#00ffff" : "#da70d6";
-                }
-
                 if (lilekImg.complete && lilekImg.naturalWidth !== 0) {
                     ctx.drawImage(lilekImg, -14, -14, 28, 28);
                 } else {
-                    ctx.fillStyle = "#800080";
-                    ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.fill();
+                    // Náhradní lilek (fialový kruh), pokud chybí obrázek
+                    ctx.fillStyle = "#800080"; ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.fill();
                 }
                 ctx.restore();
-
-                if (!isPaused && l.state === 'ground' && Math.random() < 0.03) {
-                    lilky.splice(i, 1);
-                }
+                if (!isPaused && l.state === 'ground' && Math.random() < 0.03) { lilky.splice(i, 1); }
             }
-
             for (let i = spawningLilky.length - 1; i >= 0; i--) {
                 let sl = spawningLilky[i];
                 if (!isPaused && !isGameOver && !isShopOpen) {
-                    sl.progress += 0.15;
-                    sl.y += 3; 
-                    if (sl.progress >= 1) {
-                        spawningLilky.splice(i, 1);
-                        continue;
-                    }
+                    sl.progress += 0.15; sl.y += 3;
+                    if (sl.progress >= 1) { spawningLilky.splice(i, 1); continue; }
                 }
                 ctx.save();
                 ctx.translate(sl.x, sl.y);
-                if (score >= 100) {
-                    ctx.shadowBlur = 10;
-                    ctx.shadowColor = "#da70d6";
-                }
+                if (score >= 100) { ctx.shadowBlur = 10; ctx.shadowColor = "#da70d6"; }
                 if (lilekImg.complete && lilekImg.naturalWidth !== 0) {
                     ctx.drawImage(lilekImg, -14, -14, 28, 28);
                 } else {
-                    ctx.fillStyle = "#800080";
-                    ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = "#800080"; ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.fill();
                 }
                 ctx.restore();
             }
@@ -610,25 +473,19 @@
 
         function drawVirtualCursor() {
             if (!gameStarted || isShopOpen || isGameOver) {
-                ctx.save();
-                ctx.strokeStyle = "#ffffff";
-                ctx.fillStyle = "#f1c40f";
-                ctx.lineWidth = 2;
+                ctx.strokeStyle = "#ffffff"; ctx.fillStyle = "#f1c40f"; ctx.lineWidth = 2;
                 ctx.beginPath();
                 ctx.moveTo(cursorX, cursorY);
                 ctx.lineTo(cursorX + 12, cursorY + 16);
                 ctx.lineTo(cursorX + 6, cursorY + 16);
                 ctx.lineTo(cursorX, cursorY + 22);
                 ctx.closePath();
-                ctx.fill();
-                ctx.stroke();
-                ctx.restore();
+                ctx.fill(); ctx.stroke();
             }
         }
 
         function drawStartScreen() {
-            ctx.fillStyle = "rgba(10, 10, 15, 0.85)";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "rgba(10, 10, 15, 0.85)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = "#f1c40f"; ctx.font = "bold 36px 'Courier New', Courier, monospace"; ctx.textAlign = "center";
             ctx.fillText("EGG & EGGPLANT", canvas.width / 2, canvas.height / 2 - 110);
             ctx.fillStyle = "#3498db"; ctx.font = "bold 18px 'Courier New', Courier, monospace";
@@ -641,14 +498,12 @@
 
             ctx.fillStyle = "#2ecc71"; ctx.fillRect(canvas.width / 2 + 20, canvas.height / 2 - 20, 220, 60);
             ctx.strokeRect(canvas.width / 2 + 20, canvas.height / 2 - 20, 220, 60);
-            ctx.fillStyle = "#ffffff";
-            ctx.fillText("CONNECT WALLET", canvas.width / 2 + 130, canvas.height / 2 + 15);
+            ctx.fillStyle = "#ffffff"; ctx.fillText("CONNECT WALLET", canvas.width / 2 + 130, canvas.height / 2 + 15);
 
             ctx.fillStyle = "#f1c40f"; ctx.font = "bold 16px 'Courier New', Courier, monospace";
             ctx.fillText("🎮 CONTROLS: D-Pad / Sticks = Move Cursor & Player", canvas.width / 2, canvas.height / 2 + 80);
             ctx.fillStyle = "#ffffff"; ctx.font = "14px 'Courier New', Courier, monospace";
             ctx.fillText("Use Joystick/Cursor to select & press [A] to SELECT", canvas.width / 2, canvas.height / 2 + 110);
-
             ctx.textAlign = "start";
         }
 
@@ -657,7 +512,6 @@
             ctx.fillStyle = "rgba(20, 20, 30, 0.9)";
             ctx.beginPath(); ctx.roundRect(15, 15, 130, 45, 8); ctx.fill();
             ctx.strokeStyle = "#3498db"; ctx.lineWidth = 2; ctx.stroke();
-
             ctx.fillStyle = "#3498db"; ctx.fillText("SCORE", 25, 33);
             ctx.fillStyle = "#ffffff"; ctx.font = "bold 18px 'Courier New', Courier, monospace";
             ctx.fillText(score, 25, 52);
@@ -673,34 +527,24 @@
             } else {
                 ctx.fillText("💰 " + playTokenBalance + " PLAY", canvas.width - 165, 33);
             }
-
             ctx.fillStyle = "#ff4d4d"; ctx.font = "bold 16px 'Courier New', Courier, monospace";
             ctx.fillText("Lives: " + "❤️".repeat(lives), 15, 85);
         }
 
         function drawShopScreen() {
-            ctx.fillStyle = "rgba(10, 10, 15, 0.95)";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "rgba(10, 10, 15, 0.95)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = "#f1c40f"; ctx.font = "bold 28px 'Courier New', Courier, monospace"; ctx.textAlign = "center";
             ctx.fillText("COMMUNITY SHOP & BASKETS", canvas.width / 2, 70);
 
             const drawShopBox = (bx, title, priceText, statusText, isSelected, borderColor) => {
-                ctx.fillStyle = "#1c1c28"; 
-                ctx.fillRect(bx, 130, 160, 210);
-                ctx.strokeStyle = isSelected ? "#2ecc71" : borderColor;
-                ctx.lineWidth = isSelected ? 3 : 2;
+                ctx.fillStyle = "#1c1c28"; ctx.fillRect(bx, 130, 160, 210);
+                ctx.strokeStyle = isSelected ? "#2ecc71" : borderColor; ctx.lineWidth = isSelected ? 3 : 2;
                 ctx.strokeRect(bx, 130, 160, 210);
-
-                ctx.fillStyle = borderColor;
-                ctx.font = "bold 15px 'Courier New', Courier, monospace";
+                ctx.fillStyle = borderColor; ctx.font = "bold 15px 'Courier New', Courier, monospace";
                 ctx.fillText(title, bx + 80, 165);
-
-                ctx.fillStyle = "#ffffff";
-                ctx.font = "bold 14px 'Courier New', Courier, monospace";
+                ctx.fillStyle = "#ffffff"; ctx.font = "bold 14px 'Courier New', Courier, monospace";
                 ctx.fillText(priceText, bx + 80, 210);
-
-                ctx.fillStyle = isSelected ? "#2ecc71" : "#f1c40f";
-                ctx.font = "bold 15px 'Courier New', Courier, monospace";
+                ctx.fillStyle = isSelected ? "#2ecc71" : "#f1c40f"; ctx.font = "bold 15px 'Courier New', Courier, monospace";
                 ctx.fillText(statusText, bx + 80, 290);
             };
 
@@ -732,65 +576,46 @@
             ctx.fillStyle = "rgba(10, 10, 15, 0.9)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = "#ff4d4d"; ctx.font = "bold 45px 'Courier New', Courier, monospace"; ctx.textAlign = "center";
             ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 50);
-            ctx.fillStyle = "#ffffff"; ctx.font = "22px 'Courier New', Courier, monospace";
-            ctx.fillText("Eggplants caught: " + score, canvas.width / 2, canvas.height / 2);
+            ctx.fillStyle = "#ffffff"; ctx.font = "bold 20px 'Courier New', Courier, monospace";
+            ctx.fillText("Final Score: " + score, canvas.width / 2, canvas.height / 2);
 
-            ctx.fillStyle = "#2ecc71"; ctx.fillRect(canvas.width / 2 - 120, canvas.height / 2 + 40, 240, 55);
-            ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.strokeRect(canvas.width / 2 - 120, canvas.height / 2 + 40, 240, 55);
+            ctx.fillStyle = "#e74c3c"; ctx.fillRect(canvas.width / 2 - 120, canvas.height / 2 + 40, 240, 60);
+            ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.strokeRect(canvas.width / 2 - 120, canvas.height / 2 + 40, 240, 60);
             ctx.fillStyle = "#ffffff"; ctx.font = "bold 18px 'Courier New', Courier, monospace";
-            ctx.fillText("RESTART", canvas.width / 2, canvas.height / 2 + 75);
-
+            ctx.fillText("PLAY AGAIN", canvas.width / 2, canvas.height / 2 + 75);
             ctx.textAlign = "start";
         }
 
         function restartGame() {
-            gameStarted = false; freeTrialMode = false;
-            score = 0; lives = 3; lilky = []; spawningLilky = []; spawnCounter = 0;
-            isGameOver = false; isPaused = false; isShopOpen = false; 
-            shopTriggered100 = false; shopTriggered250 = false;
-            unlockedBoxes = { box1: true, box2: false, box3: false }; activeBox = 1;
-            currentPosIndex = 4;
+            score = 0; lives = 3; isGameOver = false; isPaused = false; isShopOpen = false;
+            shopTrigger250 = false; shopTriggered100 = false; lilky = []; spawningLilky = [];
+            spawnCounter = 0; currentPosIndex = 1;
         }
 
         function gameLoop() {
             handleGamepadInput();
-
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawEnvironment(); 
-            
-            if (!gameStarted) { 
-                drawStartScreen(); 
-                drawVirtualCursor();
-                requestAnimationFrame(gameLoop); 
-                return; 
-            }
-            if (isGameOver) { 
-                updateAndDrawLilky(); 
-                drawPlayerWithBasket(); 
-                drawAtmosphereOverlay();
-                drawUI(); 
-                drawGameOver(); 
-                drawVirtualCursor();
-                requestAnimationFrame(gameLoop); 
-                return; 
-            }
-            if (isShopOpen) { 
-                drawShopScreen(); 
-                drawVirtualCursor();
-                requestAnimationFrame(gameLoop); 
-                return; 
-            }
-            if (isPaused) { updateAndDrawLilky(); drawPlayerWithBasket(); drawAtmosphereOverlay(); drawUI(); drawPauseScreen(); requestAnimationFrame(gameLoop); return; }
-
-            updateAndDrawLilky();
-            drawPlayerWithBasket();      
+            drawEnvironment();
             drawAtmosphereOverlay();
-            drawUI();
+            if (!gameStarted) {
+                drawStartScreen();
+            } else {
+                if (isShopOpen) {
+                    drawShopScreen();
+                } else if (isGameOver) {
+                    drawGameOver();
+                } else {
+                    updateAndDrawLilky();
+                    drawPlayerWithBasket();
+                    drawUI();
+                    if (isPaused) { drawPauseScreen(); }
+                }
+            }
+            drawVirtualCursor();
             requestAnimationFrame(gameLoop);
         }
 
-        bgImg.onload = () => { gameLoop(); };
-        if(bgImg.complete) { gameLoop(); }
+        requestAnimationFrame(gameLoop);
     </script>
 </body>
 </html>
