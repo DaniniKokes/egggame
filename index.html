@@ -35,7 +35,7 @@
         let isConnected = false;
         let playTokenBalance = 500; 
         let freeTrialMode = false;
-        const FREE_TRIAL_LIMIT = 50;
+        const FREE_TRIAL_LIMIT = 100; // Zvýšeno na 100 lilků zdarma
 
         let cursorX = canvas.width / 2;
         let cursorY = canvas.height / 2;
@@ -106,10 +106,9 @@
 
         let gameStarted = false;
 
-        // Pozadí pro jednotlivé fáze hry
-        const bgImg = new Image(); bgImg.src = "hlavni stranka.png"; // Světlo (0-100)
-        const bgImgLevel2 = new Image(); bgImgLevel2.src = "hlavni stranka1.png"; // Šero (100-250)
-        const bgImgLevel3 = new Image(); bgImgLevel3.src = "hlavni stranka2.png"; // Noc (250+)
+        const bgImg = new Image(); bgImg.src = "hlavni stranka.png";
+        const bgImgLevel2 = new Image(); bgImgLevel2.src = "hlavni stranka1.png";
+        const bgImgLevel3 = new Image(); bgImgLevel3.src = "hlavni stranka2.png";
 
         const playerLeftImg = new Image(); playerLeftImg.src = "player.png l.png";
         const playerRightImg = new Image(); playerRightImg.src = "player.png r.png";
@@ -124,7 +123,6 @@
             { x: 450, y: 565, side: 'center' }
         ];
 
-        // Opravená pozice y pro dolní patra (zvednuto na 374, aby lilky chodily přesně po podlaze)
         const rooms = [
             { id: 0, side: 'left',  y: 245, startX: 80, endX: 300 },  
             { id: 1, side: 'left',  y: 374, startX: 80, endX: 300 },  
@@ -141,7 +139,6 @@
         let shopTriggered100 = false; 
         let shopTriggered250 = false; 
         
-        // Změna struktury odemčených boxů: box1 je 250 lilek košík, box2 je 500 lilek košík
         let unlockedBoxes = { box1: false, box2: false };
         let activeBox = 1; 
 
@@ -266,7 +263,6 @@
             let boxHeight = 45;
             let y = 15;
             
-            // Zobrazení ikon dvou uzamykatelných košíků v horní liště
             const boxesData = [
                 { id: 1, name: "250 EGG", unlocked: unlockedBoxes.box1 },
                 { id: 2, name: "500 EGG", unlocked: unlockedBoxes.box2 }
@@ -313,22 +309,28 @@
         function triggerClickAt(mouseX, mouseY) {
             startBackgroundMusic();
             if (!gameStarted) {
+                // Tlačítko WITHOUT WALLET (Free trial mode)
                 if (mouseX >= canvas.width / 2 - 240 && mouseX <= canvas.width / 2 - 20 && mouseY >= canvas.height / 2 - 20 && mouseY <= canvas.height / 2 + 40) {
                     isConnected = false; freeTrialMode = true; gameStarted = true; currentPosIndex = 1; playSound('shop'); return;
                 }
+                // Tlačítko CONNECT WALLET
                 if (mouseX >= canvas.width / 2 + 20 && mouseX <= canvas.width / 2 + 240 && mouseY >= canvas.height / 2 - 20 && mouseY <= canvas.height / 2 + 40) {
                     isConnected = true; freeTrialMode = false; gameStarted = true; currentPosIndex = 1; playSound('shop'); return;
                 }
                 return;
             }
             if (isGameOver) {
-                if (mouseX >= canvas.width / 2 - 120 && mouseX <= canvas.width / 2 + 120 && mouseY >= canvas.height / 2 + 40 && mouseY <= canvas.height / 2 + 100) {
-                    restartGame(); playSound('shop'); return;
+                // Kliknutí na "WITHOUT WALLET" v Game Over obrazovce (levé tlačítko)
+                if (mouseX >= canvas.width / 2 - 240 && mouseX <= canvas.width / 2 - 20 && mouseY >= canvas.height / 2 + 30 && mouseY <= canvas.height / 2 + 90) {
+                    restartGame(); freeTrialMode = true; isConnected = false; gameStarted = true; currentPosIndex = 1; playSound('shop'); return;
+                }
+                // Kliknutí na "CONNECT WALLET" v Game Over obrazovce (pravé tlačítko)
+                if (mouseX >= canvas.width / 2 + 20 && mouseX <= canvas.width / 2 + 240 && mouseY >= canvas.height / 2 + 30 && mouseY <= canvas.height / 2 + 90) {
+                    restartGame(); freeTrialMode = false; isConnected = true; gameStarted = true; currentPosIndex = 1; playSound('shop'); return;
                 }
                 return;
             }
             if (isShopOpen && !txPending) {
-                // Kliknutí na první obchod (250 EGG box - levé tlačítko v obchodě)
                 if (mouseX >= canvas.width / 2 - 200 && mouseX <= canvas.width / 2 - 20 && mouseY >= 130 && mouseY <= 340) {
                     if (!unlockedBoxes.box1) { 
                         buyBox('box1', 50, 1); 
@@ -338,7 +340,6 @@
                     }
                     return;
                 }
-                // Kliknutí na druhý obchod (500 EGG box - pravé tlačítko v obchodě, podmíněné odemčením prvního)
                 if (mouseX >= canvas.width / 2 + 20 && mouseX <= canvas.width / 2 + 200 && mouseY >= 130 && mouseY <= 340) {
                     if (!unlockedBoxes.box1) {
                         txMessage = "Nejprve musíte odehrát/odemknout 250 EGG košík!";
@@ -353,7 +354,6 @@
                     }
                     return;
                 }
-                // Zavření obchodu (tlačítko dole)
                 if (mouseY >= 410 && mouseY <= 470) {
                     isShopOpen = false; lilky = []; spawningLilky = []; spawnCounter = 0; playSound('shop'); return;
                 }
@@ -437,10 +437,9 @@
                 spawnCounter++;
                 let cycleScore = score % 100;
                 
-                // Od 300 chycených lilků se rychlost/interval už dál nezpomaluje (zablokováno na maximální rychlosti)
                 let currentSpawnInterval;
                 if (score >= 300) {
-                    currentSpawnInterval = 75; // Maximální rychlost/frekvence spawaní
+                    currentSpawnInterval = 75; 
                 } else {
                     currentSpawnInterval = Math.max(75, 150 - (cycleScore * 0.8));
                 }
@@ -465,9 +464,12 @@
                                 progress: 0
                             });
                             lilky.splice(i, 1); score++;
-                            if (freeTrialMode && score >= FREE_TRIAL_LIMIT) { isGameOver = true; playSound('gameover'); }
                             
-                            // Spuštění obchodu při dosažení 100 a 250 bodů
+                            // Kontrola limitu 100 lilků v bezpeněžním režimu
+                            if (freeTrialMode && score >= FREE_TRIAL_LIMIT) {
+                                isGameOver = true; playSound('gameover');
+                            }
+                            
                             if (score === 100 && !shopTriggered100) {
                                 shopTriggered100 = true; isShopOpen = true; playSound('shop');
                             }
@@ -580,7 +582,6 @@
             ctx.fillStyle = "#f1c40f"; ctx.font = "bold 28px 'Courier New', Courier, monospace"; ctx.textAlign = "center";
             ctx.fillText("COMMUNITY SHOP & BASKETS", canvas.width / 2, 70);
 
-            // Vykreslení dvou obchodních boxů (250 EGG a 500 EGG)
             const drawShopBox = (bx, title, priceText, statusText, isSelected, borderColor, isLocked) => {
                 ctx.fillStyle = isLocked ? "#15151c" : "#1c1c28"; 
                 ctx.fillRect(bx, 130, 180, 210);
@@ -601,11 +602,9 @@
                 ctx.fillText(statusText, bx + 90, 290);
             };
 
-            // První obchod: 250 EGG box (odemyká se po dosažení prvního obchodu)
             let box1Status = activeBox === 1 ? "VYBRÁNO" : (unlockedBoxes.box1 ? "VYBRAT" : "KOUPIT (50 PLAY)");
             drawShopBox(canvas.width / 2 - 200, "250 EGG BOX", "50 PLAY", box1Status, activeBox === 1, "#f1c40f", false);
 
-            // Druhý obchod: 500 EGG box (zamčený, dokud se neodemkne box1 / 250 lilků)
             let box2Unlocked = unlockedBoxes.box1;
             let box2Status = activeBox === 2 ? "VYBRÁNO" : (!box2Unlocked ? "ZAMČENO (250 EGG)" : (unlockedBoxes.box2 ? "VYBRAT" : "KOUPIT (100 PLAY)"));
             drawShopBox(canvas.width / 2 + 20, "500 EGG BOX", "100 PLAY", box2Status, activeBox === 2, "#e74c3c", !box2Unlocked);
@@ -631,14 +630,22 @@
         function drawGameOver() {
             ctx.fillStyle = "rgba(10, 10, 15, 0.9)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = "#ff4d4d"; ctx.font = "bold 45px 'Courier New', Courier, monospace"; ctx.textAlign = "center";
-            ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 50);
+            ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 60);
             ctx.fillStyle = "#ffffff"; ctx.font = "bold 20px 'Courier New', Courier, monospace";
-            ctx.fillText("Final Score: " + score, canvas.width / 2, canvas.height / 2);
+            ctx.fillText("Final Score: " + score, canvas.width / 2, canvas.height / 2 - 15);
 
-            ctx.fillStyle = "#e74c3c"; ctx.fillRect(canvas.width / 2 - 120, canvas.height / 2 + 40, 240, 60);
-            ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.strokeRect(canvas.width / 2 - 120, canvas.height / 2 + 40, 240, 60);
-            ctx.fillStyle = "#ffffff"; ctx.font = "bold 18px 'Courier New', Courier, monospace";
-            ctx.fillText("PLAY AGAIN", canvas.width / 2, canvas.height / 2 + 75);
+            // Tlačítko WITHOUT WALLET (100 lilků zdarma) v Game Over obrazovce
+            ctx.fillStyle = "#4a69bd"; ctx.fillRect(canvas.width / 2 - 240, canvas.height / 2 + 30, 220, 60);
+            ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.strokeRect(canvas.width / 2 - 240, canvas.height / 2 + 30, 220, 60);
+            ctx.fillStyle = "#ffffff"; ctx.font = "bold 15px 'Courier New', Courier, monospace";
+            ctx.fillText("WITHOUT WALLET", canvas.width / 2 - 130, canvas.height / 2 + 65);
+
+            // Tlačítko CONNECT WALLET v Game Over obrazovce
+            ctx.fillStyle = "#2ecc71"; ctx.fillRect(canvas.width / 2 + 20, canvas.height / 2 + 30, 220, 60);
+            ctx.strokeRect(canvas.width / 2 + 20, canvas.height / 2 + 30, 220, 60);
+            ctx.fillStyle = "#ffffff";
+            ctx.fillText("CONNECT WALLET", canvas.width / 2 + 130, canvas.height / 2 + 65);
+
             ctx.textAlign = "start";
         }
 
