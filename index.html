@@ -106,7 +106,11 @@
 
         let gameStarted = false;
 
+        // Načtení obrázků pozadí (původní + nové dvě úrovně)
         const bgImg = new Image(); bgImg.src = "hlavni stranka.png";
+        const bgImgLevel2 = new Image(); bgImgLevel2.src = "hlavni stranka1.png"; // Od 100 lilků (šero)
+        const bgImgLevel3 = new Image(); bgImgLevel3.src = "hlavni stranka2.png"; // Od 250 lilků (noc)
+
         const playerLeftImg = new Image(); playerLeftImg.src = "player.png l.png";
         const playerRightImg = new Image(); playerRightImg.src = "player.png r.png";
         const playerCenterImg = new Image(); playerCenterImg.src = "player1.png";
@@ -212,15 +216,19 @@
         }
 
         function drawEnvironment() {
-            if (bgImg.complete && bgImg.naturalWidth !== 0) {
-                ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+            // Výběr správného pozadí podle skóre (světlo -> šero -> noc)
+            let currentBg = bgImg;
+            if (score >= 250 && bgImgLevel3.complete && bgImgLevel3.naturalWidth !== 0) {
+                currentBg = bgImgLevel3;
+            } else if (score >= 100 && bgImgLevel2.complete && bgImgLevel2.naturalWidth !== 0) {
+                currentBg = bgImgLevel2;
+            }
+
+            if (currentBg.complete && currentBg.naturalWidth !== 0) {
+                ctx.drawImage(currentBg, 0, 0, canvas.width, canvas.height);
             } else {
-                // Náhradní pozadí, pokud chybí obrázek
-                ctx.fillStyle = "#181824";
+                ctx.fillStyle = "#12121a";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = "#2d2d42";
-                ctx.fillRect(50, 200, 250, 250);
-                ctx.fillRect(600, 200, 250, 250);
             }
 
             const drawReplicaPlatform = (x, y) => {
@@ -241,9 +249,13 @@
         function drawAtmosphereOverlay() {
             if (!gameStarted || isShopOpen || isGameOver) return;
             if (score >= 250) {
-                ctx.fillStyle = "rgba(5, 5, 20, 0.45)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                // Tmavší noční filtr
+                ctx.fillStyle = "rgba(5, 5, 20, 0.35)"; 
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
             } else if (score >= 100) {
-                ctx.fillStyle = "rgba(10, 10, 30, 0.22)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                // Jemný šerý filtr
+                ctx.fillStyle = "rgba(10, 10, 30, 0.15)"; 
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
         }
 
@@ -380,11 +392,8 @@
             if (imgToDraw.complete && imgToDraw.naturalWidth !== 0) {
                 ctx.drawImage(imgToDraw, renderX, renderY, width, height);
             } else {
-                // Náhradní postavička (žlutý obdélník s košíkem), pokud chybí obrázky
                 ctx.fillStyle = "#f1c40f"; 
                 ctx.fillRect(renderX, renderY, width, height);
-                ctx.fillStyle = "#d35400";
-                ctx.fillRect(renderX + 10, renderY + 50, 52, 35);
             }
         }
 
@@ -447,7 +456,6 @@
                 if (lilekImg.complete && lilekImg.naturalWidth !== 0) {
                     ctx.drawImage(lilekImg, -14, -14, 28, 28);
                 } else {
-                    // Náhradní lilek (fialový kruh), pokud chybí obrázek
                     ctx.fillStyle = "#800080"; ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.fill();
                 }
                 ctx.restore();
@@ -588,7 +596,7 @@
 
         function restartGame() {
             score = 0; lives = 3; isGameOver = false; isPaused = false; isShopOpen = false;
-            shopTrigger250 = false; shopTriggered100 = false; lilky = []; spawningLilky = [];
+            shopTriggered250 = false; shopTriggered100 = false; lilky = []; spawningLilky = [];
             spawnCounter = 0; currentPosIndex = 1;
         }
 
