@@ -35,7 +35,7 @@
         let isConnected = false;
         let playTokenBalance = 500; 
         let freeTrialMode = false;
-        const FREE_TRIAL_LIMIT = 100; // Zvýšeno na 100 lilků zdarma
+        const FREE_TRIAL_LIMIT = 100;
 
         let cursorX = canvas.width / 2;
         let cursorY = canvas.height / 2;
@@ -309,22 +309,18 @@
         function triggerClickAt(mouseX, mouseY) {
             startBackgroundMusic();
             if (!gameStarted) {
-                // Tlačítko WITHOUT WALLET (Free trial mode)
                 if (mouseX >= canvas.width / 2 - 240 && mouseX <= canvas.width / 2 - 20 && mouseY >= canvas.height / 2 - 20 && mouseY <= canvas.height / 2 + 40) {
                     isConnected = false; freeTrialMode = true; gameStarted = true; currentPosIndex = 1; playSound('shop'); return;
                 }
-                // Tlačítko CONNECT WALLET
                 if (mouseX >= canvas.width / 2 + 20 && mouseX <= canvas.width / 2 + 240 && mouseY >= canvas.height / 2 - 20 && mouseY <= canvas.height / 2 + 40) {
                     isConnected = true; freeTrialMode = false; gameStarted = true; currentPosIndex = 1; playSound('shop'); return;
                 }
                 return;
             }
             if (isGameOver) {
-                // Kliknutí na "WITHOUT WALLET" v Game Over obrazovce (levé tlačítko)
                 if (mouseX >= canvas.width / 2 - 240 && mouseX <= canvas.width / 2 - 20 && mouseY >= canvas.height / 2 + 30 && mouseY <= canvas.height / 2 + 90) {
                     restartGame(); freeTrialMode = true; isConnected = false; gameStarted = true; currentPosIndex = 1; playSound('shop'); return;
                 }
-                // Kliknutí na "CONNECT WALLET" v Game Over obrazovce (pravé tlačítko)
                 if (mouseX >= canvas.width / 2 + 20 && mouseX <= canvas.width / 2 + 240 && mouseY >= canvas.height / 2 + 30 && mouseY <= canvas.height / 2 + 90) {
                     restartGame(); freeTrialMode = false; isConnected = true; gameStarted = true; currentPosIndex = 1; playSound('shop'); return;
                 }
@@ -437,6 +433,7 @@
                 spawnCounter++;
                 let cycleScore = score % 100;
                 
+                // Od 300 chycených lilků zablokována rychlost na maximu
                 let currentSpawnInterval;
                 if (score >= 300) {
                     currentSpawnInterval = 75; 
@@ -465,7 +462,6 @@
                             });
                             lilky.splice(i, 1); score++;
                             
-                            // Kontrola limitu 100 lilků v bezpeněžním režimu
                             if (freeTrialMode && score >= FREE_TRIAL_LIMIT) {
                                 isGameOver = true; playSound('gameover');
                             }
@@ -487,18 +483,42 @@
                         }
                     }
                 }
+
+                // --- VYLEPŠENÉ VYKRESLOVÁNÍ LILKŮ PRO MAXIMÁLNÍ VIDITELNOST ---
                 ctx.save();
-                ctx.translate(l.x, l.y); ctx.rotate(l.angle);
-                if (score >= 100) { ctx.shadowBlur = score >= 250 ? 15 : 10; ctx.shadowColor = score >= 250 ? "#00ffff" : "#da70d6"; }
+                ctx.translate(l.x, l.y); 
+                ctx.rotate(l.angle);
+                
+                // Silná neonová záře a kontrast
+                ctx.shadowBlur = 18;
+                ctx.shadowColor = "#ff00ff"; // Jasně růžová/fialová aura
                 
                 if (lilekImg.complete && lilekImg.naturalWidth !== 0) {
-                    ctx.drawImage(lilekImg, -14, -14, 28, 28);
+                    // Zvětšeno na 32x32 pro lepší viditelnost
+                    ctx.drawImage(lilekImg, -16, -16, 32, 32);
+                    
+                    // Jemný bílý obrys pro odlišení od tmavého pozadí
+                    ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 14, 0, Math.PI * 2);
+                    ctx.stroke();
                 } else {
-                    ctx.fillStyle = "#800080"; ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = "#da70d6"; 
+                    ctx.beginPath(); 
+                    ctx.arc(0, 0, 14, 0, Math.PI * 2); 
+                    ctx.fill();
+                    ctx.strokeStyle = "#ffffff";
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
                 }
                 ctx.restore();
-                if (!isPaused && l.state === 'ground' && Math.random() < 0.03) { lilky.splice(i, 1); }
+
+                if (!isPaused && l.state === 'ground' && Math.random() < 0.03) {
+                    lilky.splice(i, 1);
+                }
             }
+
             for (let i = spawningLilky.length - 1; i >= 0; i--) {
                 let sl = spawningLilky[i];
                 if (!isPaused && !isGameOver && !isShopOpen) {
@@ -507,11 +527,18 @@
                 }
                 ctx.save();
                 ctx.translate(sl.x, sl.y);
-                if (score >= 100) { ctx.shadowBlur = 10; ctx.shadowColor = "#da70d6"; }
+                ctx.shadowBlur = 18;
+                ctx.shadowColor = "#ff00ff";
                 if (lilekImg.complete && lilekImg.naturalWidth !== 0) {
-                    ctx.drawImage(lilekImg, -14, -14, 28, 28);
+                    ctx.drawImage(lilekImg, -16, -16, 32, 32);
+                    ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 14, 0, Math.PI * 2);
+                    ctx.stroke();
                 } else {
-                    ctx.fillStyle = "#800080"; ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = "#da70d6"; 
+                    ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI * 2); ctx.fill();
                 }
                 ctx.restore();
             }
@@ -634,13 +661,11 @@
             ctx.fillStyle = "#ffffff"; ctx.font = "bold 20px 'Courier New', Courier, monospace";
             ctx.fillText("Final Score: " + score, canvas.width / 2, canvas.height / 2 - 15);
 
-            // Tlačítko WITHOUT WALLET (100 lilků zdarma) v Game Over obrazovce
             ctx.fillStyle = "#4a69bd"; ctx.fillRect(canvas.width / 2 - 240, canvas.height / 2 + 30, 220, 60);
             ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.strokeRect(canvas.width / 2 - 240, canvas.height / 2 + 30, 220, 60);
             ctx.fillStyle = "#ffffff"; ctx.font = "bold 15px 'Courier New', Courier, monospace";
             ctx.fillText("WITHOUT WALLET", canvas.width / 2 - 130, canvas.height / 2 + 65);
 
-            // Tlačítko CONNECT WALLET v Game Over obrazovce
             ctx.fillStyle = "#2ecc71"; ctx.fillRect(canvas.width / 2 + 20, canvas.height / 2 + 30, 220, 60);
             ctx.strokeRect(canvas.width / 2 + 20, canvas.height / 2 + 30, 220, 60);
             ctx.fillStyle = "#ffffff";
