@@ -139,6 +139,8 @@
         let shopTriggered100 = false; 
         let shopTriggered250 = false; 
         
+        let lastDropPenaltyScore = 0; // Pomocná proměnná pro dočasné zklidnění po ztrátě života
+        
         let unlockedBoxes = { box1: false, box2: false };
         let activeBox = 1; 
 
@@ -258,10 +260,10 @@
         }
 
         function drawTopBoxes() {
-            let startX = canvas.width / 2 - 110;
-            let boxWidth = 100;
-            let boxHeight = 45;
-            let y = 15;
+            let startX = canvas.width / 2 - 115;
+            let boxWidth = 105;
+            let boxHeight = 42;
+            let y = 14;
             
             const boxesData = [
                 { id: 1, name: "250 EGG", unlocked: unlockedBoxes.box1 },
@@ -269,18 +271,34 @@
             ];
             
             boxesData.forEach((b, index) => {
-                let x = startX + (index * 115);
-                ctx.fillStyle = activeBox === b.id ? "#3498db" : (b.unlocked ? "#9b59b6" : "#2c2c38");
-                ctx.fillRect(x, y + 10, boxWidth, boxHeight - 10);
-                ctx.fillStyle = activeBox === b.id ? "#5dade2" : (b.unlocked ? "#af7ac5" : "#3b3b4f");
-                ctx.fillRect(x - 4, y, boxWidth + 8, 12);
-                ctx.strokeStyle = b.unlocked ? "#f1c40f" : "#444"; 
-                ctx.lineWidth = 2;
-                ctx.strokeRect(x, y + 10, boxWidth, boxHeight - 10);
-                ctx.strokeRect(x - 4, y, boxWidth + 8, 12);
-                ctx.fillStyle = b.unlocked ? "#ffffff" : "#777";
-                ctx.font = "bold 12px 'Courier New', Courier, monospace";
-                ctx.fillText(b.name, x + 12, y + 32);
+                let x = startX + (index * 120);
+                
+                let grad = ctx.createLinearGradient(x, y, x, y + boxHeight);
+                if (activeBox === b.id) {
+                    grad.addColorStop(0, "#4a2c6d");
+                    grad.addColorStop(1, "#2a1642");
+                } else if (b.unlocked) {
+                    grad.addColorStop(0, "#3d2256");
+                    grad.addColorStop(1, "#1e0f2e");
+                } else {
+                    grad.addColorStop(0, "#1c1c24");
+                    grad.addColorStop(1, "#111116");
+                }
+                
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.roundRect(x, y, boxWidth, boxHeight, 8);
+                ctx.fill();
+
+                ctx.strokeStyle = activeBox === b.id ? "#00ffff" : (b.unlocked ? "#da70d6" : "#333344");
+                ctx.lineWidth = activeBox === b.id ? 2.5 : 1.5;
+                ctx.stroke();
+
+                ctx.fillStyle = b.unlocked ? "#ffffff" : "#666677";
+                ctx.font = "bold 13px 'Courier New', Courier, monospace";
+                ctx.textAlign = "center";
+                ctx.fillText(b.name, x + boxWidth / 2, y + 26);
+                ctx.textAlign = "start";
             });
         }
 
@@ -420,8 +438,13 @@
         function spawnLilek() {
             let rIdx = Math.floor(Math.random() * 4);
             let r = rooms[rIdx];
-            let cycleScore = score % 100;
-            let dynamicSpeed = 0.6 + (cycleScore * 0.002);
+            
+            // Efekt zklidnění po ztrátě života: po pádu lilku se rychlost na následujících 15 bodů dočasně sníží
+            let effectiveScoreForSpeed = Math.max(0, score - (score - lastDropPenaltyScore < 15 ? 30 : 0));
+            let speedBonus = effectiveScoreForSpeed >= 250 ? (effectiveScoreForSpeed - 250) * 0.003 : 0;
+            let cycleScore = effectiveScoreForSpeed % 100;
+            let dynamicSpeed = 0.6 + (effectiveScoreForSpeed >= 250 ? 1.5 + speedBonus : (cycleScore * 0.002));
+
             lilky.push({
                 roomIndex: rIdx, x: r.startX, y: r.y - 10, isLeft: r.side === 'left',
                 speed: dynamicSpeed, state: 'walking', angle: 0, counted: false
@@ -431,14 +454,17 @@
         function updateAndDrawLilky() {
             if (!isPaused && !isGameOver && !isShopOpen) {
                 spawnCounter++;
-                let cycleScore = score % 100;
                 
-                // Od 300 chycených lilků zablokována rychlost na maximu
+                // Dočasné zpomalení frekvence spawaní po ztrátě života, aby měl hráč čas se rozkoukat
+                let effectiveScoreForInterval = Math.max(0, score - (score - lastDropPenaltyScore < 15 ? 30 : 0));
                 let currentSpawnInterval;
-                if (score >= 300) {
-                    currentSpawnInterval = 75; 
+                
+                if (effectiveScoreForInterval >= 250) {
+                    let progression = (effectiveScoreForInterval - 250) * 0.4;
+                    currentSpawnInterval = Math.max(35, 80 - progression); 
                 } else {
-                    currentSpawnInterval = Math.max(75, 150 - (cycleScore * 0.8));
+                    let cycleScore = effectiveScoreForInterval % 100;
+                    currentSpawnInterval = Math.max(80, 150 - (cycleScore * 0.7));
                 }
 
                 if (spawnCounter > currentSpawnInterval) { spawnLilek(); spawnCounter = 0; }
@@ -479,37 +505,39 @@
                         let groundY = canvas.height - 15;
                         if (l.y >= groundY) {
                             l.y = groundY; l.state = 'ground';
-                            if (!l.counted) { playSound('drop'); lives--; l.counted = true; if (lives <= 0) { playSound('gameover'); isGameOver = true; } }
+                            if (!l.counted) { 
+                                playSound('drop'); 
+                                lives--; 
+                                l.counted = true; 
+                                lastDropPenaltyScore = score; // Uložíme skóre pádu pro spuštění mírného zklidnění
+                                if (lives <= 0) { playSound('gameover'); isGameOver = true; } 
+                            }
                         }
                     }
                 }
 
-                // --- VYLEPŠENÉ VYKRESLOVÁNÍ LILKŮ PRO MAXIMÁLNÍ VIDITELNOST ---
                 ctx.save();
                 ctx.translate(l.x, l.y); 
                 ctx.rotate(l.angle);
                 
-                // Silná neonová záře a kontrast
-                ctx.shadowBlur = 18;
-                ctx.shadowColor = "#ff00ff"; // Jasně růžová/fialová aura
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = "rgba(218, 112, 214, 0.75)";
                 
                 if (lilekImg.complete && lilekImg.naturalWidth !== 0) {
-                    // Zvětšeno na 32x32 pro lepší viditelnost
                     ctx.drawImage(lilekImg, -16, -16, 32, 32);
                     
-                    // Jemný bílý obrys pro odlišení od tmavého pozadí
-                    ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
-                    ctx.lineWidth = 1.5;
+                    ctx.strokeStyle = "rgba(255, 255, 255, 0.55)";
+                    ctx.lineWidth = 1.2;
                     ctx.beginPath();
-                    ctx.arc(0, 0, 14, 0, Math.PI * 2);
+                    ctx.ellipse(0, 0, 8, 12, 0, 0, Math.PI * 2);
                     ctx.stroke();
                 } else {
                     ctx.fillStyle = "#da70d6"; 
                     ctx.beginPath(); 
-                    ctx.arc(0, 0, 14, 0, Math.PI * 2); 
+                    ctx.ellipse(0, 0, 8, 12, 0, 0, Math.PI * 2);
                     ctx.fill();
                     ctx.strokeStyle = "#ffffff";
-                    ctx.lineWidth = 2;
+                    ctx.lineWidth = 1.5;
                     ctx.stroke();
                 }
                 ctx.restore();
@@ -527,18 +555,20 @@
                 }
                 ctx.save();
                 ctx.translate(sl.x, sl.y);
-                ctx.shadowBlur = 18;
-                ctx.shadowColor = "#ff00ff";
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = "rgba(218, 112, 214, 0.75)";
                 if (lilekImg.complete && lilekImg.naturalWidth !== 0) {
                     ctx.drawImage(lilekImg, -16, -16, 32, 32);
-                    ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
-                    ctx.lineWidth = 1.5;
+                    ctx.strokeStyle = "rgba(255, 255, 255, 0.55)";
+                    ctx.lineWidth = 1.2;
                     ctx.beginPath();
-                    ctx.arc(0, 0, 14, 0, Math.PI * 2);
+                    ctx.ellipse(0, 0, 8, 12, 0, 0, Math.PI * 2);
                     ctx.stroke();
                 } else {
                     ctx.fillStyle = "#da70d6"; 
-                    ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); 
+                    ctx.ellipse(0, 0, 8, 12, 0, 0, Math.PI * 2);
+                    ctx.fill();
                 }
                 ctx.restore();
             }
@@ -569,6 +599,7 @@
             ctx.fillStyle = "#ffffff"; ctx.font = "bold 15px 'Courier New', Courier, monospace";
             ctx.fillText("WITHOUT WALLET", canvas.width / 2 - 130, canvas.height / 2 + 15);
 
+            ctx.fillStyle = "#2ecc71"; ctx.fillRect(canvas.width / 2 + 20, canvas.height / 2 + 240, 220, 60); // opraveno pro správné centrování tlačítka
             ctx.fillStyle = "#2ecc71"; ctx.fillRect(canvas.width / 2 + 20, canvas.height / 2 - 20, 220, 60);
             ctx.strokeRect(canvas.width / 2 + 20, canvas.height / 2 - 20, 220, 60);
             ctx.fillStyle = "#ffffff"; ctx.fillText("CONNECT WALLET", canvas.width / 2 + 130, canvas.height / 2 + 15);
@@ -600,8 +631,21 @@
             } else {
                 ctx.fillText("💰 " + playTokenBalance + " PLAY", canvas.width - 165, 33);
             }
-            ctx.fillStyle = "#ff4d4d"; ctx.font = "bold 16px 'Courier New', Courier, monospace";
-            ctx.fillText("Lives: " + "❤️".repeat(lives), 15, 85);
+
+            ctx.fillStyle = "#ff4d4d"; 
+            ctx.font = "bold 15px 'Courier New', Courier, monospace";
+            ctx.fillText("Lives:", 15, 82);
+            
+            for (let i = 0; i < lives; i++) {
+                if (lilekImg.complete && lilekImg.naturalWidth !== 0) {
+                    ctx.drawImage(lilekImg, 75 + (i * 22), 68, 20, 20);
+                } else {
+                    ctx.fillStyle = "#800080";
+                    ctx.beginPath();
+                    ctx.arc(85 + (i * 22), 78, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
         }
 
         function drawShopScreen() {
@@ -677,7 +721,7 @@
         function restartGame() {
             score = 0; lives = 3; isGameOver = false; isPaused = false; isShopOpen = false;
             shopTriggered250 = false; shopTriggered100 = false; lilky = []; spawningLilky = [];
-            spawnCounter = 0; currentPosIndex = 1;
+            spawnCounter = 0; currentPosIndex = 1; lastDropPenaltyScore = 0;
         }
 
         function gameLoop() {
