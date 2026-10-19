@@ -140,7 +140,7 @@
         let shopTriggered100 = false; 
         let shopTriggered250 = false; 
         
-        let lastDropScore = -99; // Sleduje skóre v momentě ztráty života pro výpočet klidných prvních 10 chycení
+        let lastDropScore = -99; 
         let unlockedBoxes = { box1: false, box2: false };
         let activeBox = 1; 
 
@@ -444,32 +444,25 @@
 
         let lilky = [], spawningLilky = [], spawnCounter = 0;
 
-        // --- PŘESNÉ NASTAVENÍ OBTÍŽNOSTI A RYCHLOSTI ---
         function getDifficultyMultipliers() {
-            // Kontrola, zda jsme v prvních 10 chycených lilcích po ztrátě života
             let isRecovering = (score - lastDropScore) < 10;
-            
             let baseSpeed, interval;
 
             if (isRecovering) {
-                // Výrazné zpomalení pro prvních 10 chycených lilků po ztrátě života
-                baseSpeed = 0.9;
-                interval = 130;
+                baseSpeed = 0.8;
+                interval = 140;
             } else if (score < 100) {
-                // Prvních 100 bodů: začíná svižně a dynamicky zrychluje
-                let progress = score / 100; // 0.0 až 1.0
-                baseSpeed = 0.7 + (progress * 0.7); // od 0.7 do 1.4
-                interval = 130 - (progress * 35);   // od 130 dolů k 95
+                let progress = score / 100;
+                baseSpeed = 0.8 + (progress * 0.6); 
+                interval = 120 - (progress * 30);   
             } else if (score < 250) {
-                // Mezi 100 a 250 body: stabilní, vyvážená intenzita
-                let progress = (score - 100) / 150; // 0.0 až 1.0
-                baseSpeed = 1.4 + (progress * 0.4); // od 1.4 do 1.8
-                interval = 95 - (progress * 15);    // od 95 dolů k 80
+                let progress = (score - 100) / 150;
+                baseSpeed = 1.4 + (progress * 0.4); 
+                interval = 90 - (progress * 15);    
             } else {
-                // Od 250 bodů výše: plynulá, extrémní gradace až do zbláznění bez limitu
                 let over250 = score - 250;
-                baseSpeed = 1.8 + (over250 * 0.008); // plynulý nárůst rychlosti
-                interval = Math.max(25, 80 - (over250 * 0.12)); // čím víc bodů, tím kratší interval
+                baseSpeed = 1.8 + (over250 * 0.008); 
+                interval = Math.max(25, 75 - (over250 * 0.12)); 
             }
 
             return { speed: baseSpeed, spawnInterval: interval };
@@ -536,7 +529,9 @@
                                 playSound('drop'); 
                                 lives--; 
                                 l.counted = true; 
-                                lastDropScore = score; // Zaznamenáme skóre pádu pro aktivaci klidných prvních 10 chycení
+                                lastDropScore = score; 
+                                lilky = [];       // <--- VYMAŽE VŠECHNY OSTATNÍ LILKY NA BALKONECH PO PÁDU!
+                                spawnCounter = 0; // <--- RESETUJE ČÍTAČ, ABY NOVÉ ZAČALY VYJÍŽDĚT OD ZÁKLADU
                                 if (lives <= 0) { playSound('gameover'); isGameOver = true; } 
                             }
                         }
@@ -715,7 +710,7 @@
 
             if (txMessage !== "") {
                 ctx.fillStyle = "#e67e22"; ctx.font = "bold 16px 'Courier New', Courier, monospace";
-                ctx.fillText(txMessage, canvas.width / 2, 385);
+                    ctx.fillText(txMessage, canvas.width / 2, 385);
             }
             ctx.fillStyle = "#aaa"; ctx.font = "14px 'Courier New', Courier, monospace";
             ctx.fillText("Stiskněte ESC nebo ENTER pro návrat", canvas.width / 2, 445);
