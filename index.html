@@ -39,7 +39,7 @@
 
         let cursorX = canvas.width / 2;
         let cursorY = canvas.height / 2;
-        const cursorSpeed = 7;
+        const cursorSpeed = 8;
 
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         let backgroundMusicInterval = null;
@@ -109,6 +109,7 @@
         const bgImg = new Image(); bgImg.src = "hlavni stranka.png";
         const bgImgLevel2 = new Image(); bgImgLevel2.src = "hlavni stranka1.png";
         const bgImgLevel3 = new Image(); bgImgLevel3.src = "hlavni stranka2.png";
+        const startScreenImg = new Image(); startScreenImg.src = "uvodni.png";
 
         const playerLeftImg = new Image(); playerLeftImg.src = "player.png l.png";
         const playerRightImg = new Image(); playerRightImg.src = "player.png r.png";
@@ -139,8 +140,7 @@
         let shopTriggered100 = false; 
         let shopTriggered250 = false; 
         
-        let lastDropPenaltyScore = 0; // Pomocná proměnná pro dočasné zklidnění po ztrátě života
-        
+        let lastDropScore = -99; // Sleduje skóre v momentě ztráty života pro výpočet klidných prvních 10 chycení
         let unlockedBoxes = { box1: false, box2: false };
         let activeBox = 1; 
 
@@ -149,6 +149,9 @@
         let catchAnimFrames = 0; 
         let animTimer = 0;
         let prevGamepadState = { buttons: {}, axes: {} };
+
+        const playBtnBox = { x: 200, y: 485, w: 285, h: 60 };
+        const walletBtnBox = { x: 510, y: 485, w: 285, h: 60 };
 
         function handleGamepadInput() {
             const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
@@ -304,7 +307,16 @@
 
         window.addEventListener("keydown", (e) => {
             startBackgroundMusic();
-            if (!gameStarted) return;
+            if (!gameStarted) {
+                if (e.key === "Enter" || e.code === "Space") {
+                    if (cursorX < canvas.width / 2) {
+                        isConnected = false; freeTrialMode = true; gameStarted = true; currentPosIndex = 1; playSound('shop');
+                    } else {
+                        isConnected = true; freeTrialMode = false; gameStarted = true; currentPosIndex = 1; playSound('shop');
+                    }
+                }
+                return;
+            }
             if (isGameOver) {
                 if (e.key === "Enter" || e.code === "Space") restartGame();
                 return;
@@ -327,11 +339,18 @@
         function triggerClickAt(mouseX, mouseY) {
             startBackgroundMusic();
             if (!gameStarted) {
-                if (mouseX >= canvas.width / 2 - 240 && mouseX <= canvas.width / 2 - 20 && mouseY >= canvas.height / 2 - 20 && mouseY <= canvas.height / 2 + 40) {
+                if (mouseX >= playBtnBox.x && mouseX <= playBtnBox.x + playBtnBox.w && 
+                    mouseY >= playBtnBox.y && mouseY <= playBtnBox.y + playBtnBox.h) {
                     isConnected = false; freeTrialMode = true; gameStarted = true; currentPosIndex = 1; playSound('shop'); return;
                 }
-                if (mouseX >= canvas.width / 2 + 20 && mouseX <= canvas.width / 2 + 240 && mouseY >= canvas.height / 2 - 20 && mouseY <= canvas.height / 2 + 40) {
+                if (mouseX >= walletBtnBox.x && mouseX <= walletBtnBox.x + walletBtnBox.w && 
+                    mouseY >= walletBtnBox.y && mouseY <= walletBtnBox.y + walletBtnBox.h) {
                     isConnected = true; freeTrialMode = false; gameStarted = true; currentPosIndex = 1; playSound('shop'); return;
+                }
+                if (mouseX < canvas.width / 2) {
+                    isConnected = false; freeTrialMode = true; gameStarted = true; currentPosIndex = 1; playSound('shop');
+                } else {
+                    isConnected = true; freeTrialMode = false; gameStarted = true; currentPosIndex = 1; playSound('shop');
                 }
                 return;
             }
@@ -346,12 +365,7 @@
             }
             if (isShopOpen && !txPending) {
                 if (mouseX >= canvas.width / 2 - 200 && mouseX <= canvas.width / 2 - 20 && mouseY >= 130 && mouseY <= 340) {
-                    if (!unlockedBoxes.box1) { 
-                        buyBox('box1', 50, 1); 
-                    } else { 
-                        activeBox = 1; 
-                        playSound('shop'); 
-                    }
+                    if (!unlockedBoxes.box1) { buyBox('box1', 50, 1); } else { activeBox = 1; playSound('shop'); }
                     return;
                 }
                 if (mouseX >= canvas.width / 2 + 20 && mouseX <= canvas.width / 2 + 200 && mouseY >= 130 && mouseY <= 340) {
@@ -360,12 +374,7 @@
                         setTimeout(() => { txMessage = ""; }, 2500);
                         return;
                     }
-                    if (!unlockedBoxes.box2) { 
-                        buyBox('box2', 100, 2); 
-                    } else { 
-                        activeBox = 2; 
-                        playSound('shop'); 
-                    }
+                    if (!unlockedBoxes.box2) { buyBox('box2', 100, 2); } else { activeBox = 2; playSound('shop'); }
                     return;
                 }
                 if (mouseY >= 410 && mouseY <= 470) {
@@ -435,39 +444,57 @@
 
         let lilky = [], spawningLilky = [], spawnCounter = 0;
 
+        // --- PŘESNÉ NASTAVENÍ OBTÍŽNOSTI A RYCHLOSTI ---
+        function getDifficultyMultipliers() {
+            // Kontrola, zda jsme v prvních 10 chycených lilcích po ztrátě života
+            let isRecovering = (score - lastDropScore) < 10;
+            
+            let baseSpeed, interval;
+
+            if (isRecovering) {
+                // Výrazné zpomalení pro prvních 10 chycených lilků po ztrátě života
+                baseSpeed = 0.9;
+                interval = 130;
+            } else if (score < 100) {
+                // Prvních 100 bodů: začíná svižně a dynamicky zrychluje
+                let progress = score / 100; // 0.0 až 1.0
+                baseSpeed = 0.7 + (progress * 0.7); // od 0.7 do 1.4
+                interval = 130 - (progress * 35);   // od 130 dolů k 95
+            } else if (score < 250) {
+                // Mezi 100 a 250 body: stabilní, vyvážená intenzita
+                let progress = (score - 100) / 150; // 0.0 až 1.0
+                baseSpeed = 1.4 + (progress * 0.4); // od 1.4 do 1.8
+                interval = 95 - (progress * 15);    // od 95 dolů k 80
+            } else {
+                // Od 250 bodů výše: plynulá, extrémní gradace až do zbláznění bez limitu
+                let over250 = score - 250;
+                baseSpeed = 1.8 + (over250 * 0.008); // plynulý nárůst rychlosti
+                interval = Math.max(25, 80 - (over250 * 0.12)); // čím víc bodů, tím kratší interval
+            }
+
+            return { speed: baseSpeed, spawnInterval: interval };
+        }
+
         function spawnLilek() {
             let rIdx = Math.floor(Math.random() * 4);
             let r = rooms[rIdx];
-            
-            // Efekt zklidnění po ztrátě života: po pádu lilku se rychlost na následujících 15 bodů dočasně sníží
-            let effectiveScoreForSpeed = Math.max(0, score - (score - lastDropPenaltyScore < 15 ? 30 : 0));
-            let speedBonus = effectiveScoreForSpeed >= 250 ? (effectiveScoreForSpeed - 250) * 0.003 : 0;
-            let cycleScore = effectiveScoreForSpeed % 100;
-            let dynamicSpeed = 0.6 + (effectiveScoreForSpeed >= 250 ? 1.5 + speedBonus : (cycleScore * 0.002));
+            let diff = getDifficultyMultipliers();
 
             lilky.push({
                 roomIndex: rIdx, x: r.startX, y: r.y - 10, isLeft: r.side === 'left',
-                speed: dynamicSpeed, state: 'walking', angle: 0, counted: false
+                speed: diff.speed, state: 'walking', angle: 0, counted: false
             });
         }
 
         function updateAndDrawLilky() {
             if (!isPaused && !isGameOver && !isShopOpen) {
                 spawnCounter++;
-                
-                // Dočasné zpomalení frekvence spawaní po ztrátě života, aby měl hráč čas se rozkoukat
-                let effectiveScoreForInterval = Math.max(0, score - (score - lastDropPenaltyScore < 15 ? 30 : 0));
-                let currentSpawnInterval;
-                
-                if (effectiveScoreForInterval >= 250) {
-                    let progression = (effectiveScoreForInterval - 250) * 0.4;
-                    currentSpawnInterval = Math.max(35, 80 - progression); 
-                } else {
-                    let cycleScore = effectiveScoreForInterval % 100;
-                    currentSpawnInterval = Math.max(80, 150 - (cycleScore * 0.7));
-                }
+                let diff = getDifficultyMultipliers();
 
-                if (spawnCounter > currentSpawnInterval) { spawnLilek(); spawnCounter = 0; }
+                if (spawnCounter > diff.spawnInterval) { 
+                    spawnLilek(); 
+                    spawnCounter = 0; 
+                }
             }
             for (let i = lilky.length - 1; i >= 0; i--) {
                 let l = lilky[i], r = rooms[l.roomIndex];
@@ -509,7 +536,7 @@
                                 playSound('drop'); 
                                 lives--; 
                                 l.counted = true; 
-                                lastDropPenaltyScore = score; // Uložíme skóre pádu pro spuštění mírného zklidnění
+                                lastDropScore = score; // Zaznamenáme skóre pádu pro aktivaci klidných prvních 10 chycení
                                 if (lives <= 0) { playSound('gameover'); isGameOver = true; } 
                             }
                         }
@@ -588,27 +615,33 @@
         }
 
         function drawStartScreen() {
-            ctx.fillStyle = "rgba(10, 10, 15, 0.85)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "#f1c40f"; ctx.font = "bold 36px 'Courier New', Courier, monospace"; ctx.textAlign = "center";
-            ctx.fillText("EGG & EGGPLANT", canvas.width / 2, canvas.height / 2 - 110);
-            ctx.fillStyle = "#3498db"; ctx.font = "bold 18px 'Courier New', Courier, monospace";
-            ctx.fillText("PSG1 DELUXE EDITION", canvas.width / 2, canvas.height / 2 - 70);
+            if (startScreenImg.complete && startScreenImg.naturalWidth !== 0) {
+                ctx.drawImage(startScreenImg, 0, 0, canvas.width, canvas.height);
+            } else {
+                ctx.fillStyle = "rgba(10, 10, 15, 0.95)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "#f1c40f"; 
+                ctx.font = "bold 36px 'Courier New', Courier, monospace"; 
+                ctx.textAlign = "center";
+                ctx.fillText("EGG & EGGPLANT", canvas.width / 2, canvas.height / 2 - 50);
+                ctx.fillStyle = "#ffffff"; 
+                ctx.font = "16px 'Courier New', Courier, monospace";
+                ctx.fillText("Načítá se uvodni.png...", canvas.width / 2, canvas.height / 2);
+                ctx.textAlign = "start";
+            }
 
-            ctx.fillStyle = "#4a69bd"; ctx.fillRect(canvas.width / 2 - 240, canvas.height / 2 - 20, 220, 60);
-            ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.strokeRect(canvas.width / 2 - 240, canvas.height / 2 - 20, 220, 60);
-            ctx.fillStyle = "#ffffff"; ctx.font = "bold 15px 'Courier New', Courier, monospace";
-            ctx.fillText("WITHOUT WALLET", canvas.width / 2 - 130, canvas.height / 2 + 15);
-
-            ctx.fillStyle = "#2ecc71"; ctx.fillRect(canvas.width / 2 + 20, canvas.height / 2 + 240, 220, 60); // opraveno pro správné centrování tlačítka
-            ctx.fillStyle = "#2ecc71"; ctx.fillRect(canvas.width / 2 + 20, canvas.height / 2 - 20, 220, 60);
-            ctx.strokeRect(canvas.width / 2 + 20, canvas.height / 2 - 20, 220, 60);
-            ctx.fillStyle = "#ffffff"; ctx.fillText("CONNECT WALLET", canvas.width / 2 + 130, canvas.height / 2 + 15);
-
-            ctx.fillStyle = "#f1c40f"; ctx.font = "bold 16px 'Courier New', Courier, monospace";
-            ctx.fillText("🎮 CONTROLS: D-Pad / Sticks = Move Cursor & Player", canvas.width / 2, canvas.height / 2 + 80);
-            ctx.fillStyle = "#ffffff"; ctx.font = "14px 'Courier New', Courier, monospace";
-            ctx.fillText("Use Joystick/Cursor to select & press [A] to SELECT", canvas.width / 2, canvas.height / 2 + 110);
-            ctx.textAlign = "start";
+            ctx.save();
+            ctx.lineWidth = 4;
+            if (cursorX >= playBtnBox.x && cursorX <= playBtnBox.x + playBtnBox.w && 
+                cursorY >= playBtnBox.y && cursorY <= playBtnBox.y + playBtnBox.h) {
+                ctx.strokeStyle = "#ffff00"; 
+                ctx.strokeRect(playBtnBox.x, playBtnBox.y, playBtnBox.w, playBtnBox.h);
+            } else if (cursorX >= walletBtnBox.x && cursorX <= walletBtnBox.x + walletBtnBox.w && 
+                     cursorY >= walletBtnBox.y && cursorY <= walletBtnBox.y + walletBtnBox.h) {
+                ctx.strokeStyle = "#00ffff"; 
+                ctx.strokeRect(walletBtnBox.x, walletBtnBox.y, walletBtnBox.w, walletBtnBox.h);
+            }
+            ctx.restore();
         }
 
         function drawUI() {
@@ -721,17 +754,18 @@
         function restartGame() {
             score = 0; lives = 3; isGameOver = false; isPaused = false; isShopOpen = false;
             shopTriggered250 = false; shopTriggered100 = false; lilky = []; spawningLilky = [];
-            spawnCounter = 0; currentPosIndex = 1; lastDropPenaltyScore = 0;
+            spawnCounter = 0; currentPosIndex = 1; lastDropScore = -99;
         }
 
         function gameLoop() {
             handleGamepadInput();
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawEnvironment();
-            drawAtmosphereOverlay();
+            
             if (!gameStarted) {
                 drawStartScreen();
             } else {
+                drawEnvironment();
+                drawAtmosphereOverlay();
                 if (isShopOpen) {
                     drawShopScreen();
                 } else if (isGameOver) {
